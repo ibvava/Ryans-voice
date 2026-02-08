@@ -251,6 +251,27 @@
         .sos-group.needs .sos-btn:active { border-color:rgba(78,205,196,0.5); background:rgba(78,205,196,0.06); }
         .sos-group.explain .sos-btn { border-color:rgba(162,155,254,0.2); }
 
+        /* ===== TOPIC LAUNCHER ===== */
+        .topic-launch-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 14px calc(var(--safe-bottom) + 70px); }
+        .topic-launch-header { font-family:'DM Serif Display',serif; font-size:22px; text-align:center; margin-bottom:4px; color:var(--text-primary); }
+        .topic-launch-sub { font-size:13px; color:var(--text-secondary); text-align:center; margin-bottom:18px; }
+        .topic-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:18px; }
+        .topic-tile { background:var(--bg-card); border:1.5px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:pointer; transition:all 0.15s; min-height:80px; }
+        .topic-tile:active { transform:scale(0.94); }
+        .topic-tile.active { border-color:var(--accent-primary); background:rgba(108,99,255,0.1); box-shadow:0 0 20px rgba(108,99,255,0.15); }
+        .topic-tile .topic-icon { font-size:28px; margin-bottom:4px; }
+        .topic-tile .topic-name { font-size:11px; font-weight:600; line-height:1.25; color:var(--text-secondary); }
+        .topic-tile.active .topic-name { color:var(--accent-glow); }
+        .topic-group-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-muted); margin:14px 0 8px 4px; grid-column:1/-1; }
+        .starter-panel { display:none; }
+        .starter-panel.visible { display:block; }
+        .starter-header { font-size:15px; font-weight:700; color:var(--accent-glow); margin-bottom:10px; padding:0 4px; }
+        .starter-cards { display:grid; grid-template-columns:1fr; gap:8px; }
+        .starter-btn { background:var(--bg-card); border:1.5px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px 18px; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600; color:var(--text-primary); cursor:pointer; text-align:left; line-height:1.4; transition:all 0.12s; display:flex; align-items:center; gap:10px; }
+        .starter-btn:active { transform:scale(0.97); background:var(--accent-primary); color:white; border-color:var(--accent-primary); }
+        .starter-btn .starter-icon { font-size:20px; flex-shrink:0; }
+        .starter-btn .starter-hint { font-size:11px; color:var(--text-muted); margin-left:auto; flex-shrink:0; }
+
         @media(max-width:480px) {
             .phrase-text { font-size:22px; }
             .phrase-card { padding:28px 18px 24px; min-height:240px; }
@@ -340,6 +361,7 @@
     <div class="category-bar" id="categoryBar"></div>
     <div class="bottom-nav">
         <button class="nav-btn" onclick="app.goHome()"><span class="nav-icon">🏠</span>Home</button>
+        <button class="nav-btn" onclick="app.openTopicLauncher()"><span class="nav-icon">🗣️</span>Start</button>
         <button class="nav-btn" onclick="app.openAddPhrase()"><span class="nav-icon">＋</span>Add</button>
         <button class="nav-btn" onclick="showToast('Writing mode coming soon!')"><span class="nav-icon">✍️</span>Write</button>
     </div>
@@ -351,6 +373,24 @@
     <div class="bottom-nav">
         <button class="nav-btn" onclick="app.goHome()"><span class="nav-icon">🏠</span>Home</button>
         <button class="nav-btn" onclick="app.loadContext('sensory')"><span class="nav-icon">📋</span>Browse All</button>
+    </div>
+</div>
+
+<!-- TOPIC LAUNCHER -->
+<div class="screen" id="topicLaunchScreen">
+    <div class="topic-launch-scroll">
+        <div class="topic-launch-header">What do you want to talk about?</div>
+        <div class="topic-launch-sub">Tap a topic → pick a starter → speak it</div>
+        <div id="topicGrid" class="topic-grid"></div>
+        <!-- Starters appear here when a topic is tapped -->
+        <div id="starterPanel" class="starter-panel">
+            <div class="starter-header" id="starterHeader"></div>
+            <div class="starter-cards" id="starterCards"></div>
+        </div>
+    </div>
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="app.goHome()"><span class="nav-icon">🏠</span>Home</button>
+        <button class="nav-btn" onclick="app.openTopicLauncher()"><span class="nav-icon">🗣️</span>Topics</button>
     </div>
 </div>
 
@@ -828,10 +868,8 @@ malayalam: {
 
 const CONTEXTS = [
     {id:"sensory",     icon:"⚡", label:"Quick SOS",         group:"urgent"},
-    {id:"conversation",icon:"💬", label:"Conversation",      group:"activities"},
-    {id:"story",       icon:"📚", label:"Story / Pictures",  group:"activities"},
-    {id:"math",        icon:"🔢", label:"Math",              group:"activities"},
-    {id:"gaming",      icon:"🎮", label:"Gaming / Videos",   group:"activities"},
+    {id:"topicLaunch", icon:"🗣️", label:"Start Talking",     group:"urgent"},
+    {id:"conversation",icon:"💬", label:"Conversation",      group:"life"},
     {id:"school",      icon:"🏫", label:"At School",         group:"life"},
     {id:"home",        icon:"🏡", label:"At Home",           group:"life"},
     {id:"malayalam",   icon:"🇮🇳", label:"Malayalam",         group:"languages"},
@@ -1312,6 +1350,212 @@ let lastTranscriptUpdate = 0;
 let detectedTopic = '';
 let detectedKeywords = [];
 let suggestedPhrases = [];
+
+// ============================================================
+// TOPIC STARTERS — conversation initiators for each topic
+// Ryan taps a topic → sees these → taps one → speaks it → conversation begins
+// ============================================================
+const TOPIC_STARTERS = {
+    food: [
+        {icon:'🍽️', text:"I'm hungry. Can we discuss what to eat?"},
+        {icon:'🍕', text:"I'd like pizza for dinner, if possible."},
+        {icon:'💭', text:"I have a suggestion for what we could eat."},
+        {icon:'❌', text:"I don't feel like eating right now."},
+        {icon:'🔄', text:"Can we have something different from yesterday?"},
+        {icon:'⭐', text:"Can we have my favourite meal tonight?"},
+    ],
+    drink: [
+        {icon:'🥤', text:"I'm thirsty. Could I have a drink, please?"},
+        {icon:'☕', text:"A hot chocolate would be lovely, if that's okay."},
+        {icon:'💧', text:"Can I have some water, please?"},
+        {icon:'❌', text:"I'm not thirsty at the moment, thanks."},
+    ],
+    hygiene: [
+        {icon:'🚿', text:"I'd like to have a shower, please."},
+        {icon:'✅', text:"I've already brushed my teeth."},
+        {icon:'🆘', text:"I need help getting ready."},
+        {icon:'⏰', text:"Do I need to shower now, or can I do it later?"},
+        {icon:'👕', text:"I need clean clothes."},
+    ],
+    sleep: [
+        {icon:'😴', text:"I'm feeling really tired."},
+        {icon:'🌙', text:"Can I stay up a bit longer tonight?"},
+        {icon:'😟', text:"I didn't sleep well last night."},
+        {icon:'💤', text:"I think I need a nap."},
+        {icon:'👍', text:"I slept really well, actually."},
+    ],
+    chores: [
+        {icon:'✅', text:"I've finished my chores."},
+        {icon:'🆘', text:"I need help with a task."},
+        {icon:'⏰', text:"Can I do it later?"},
+        {icon:'❓', text:"What do I need to do today?"},
+        {icon:'🤝', text:"Can someone help me with this?"},
+    ],
+    health: [
+        {icon:'🤒', text:"I'm not feeling well."},
+        {icon:'🤕', text:"Something hurts and I need to tell you where."},
+        {icon:'💊', text:"Have I taken my medication?"},
+        {icon:'👍', text:"I'm feeling better today."},
+        {icon:'🏥', text:"Do I have any appointments coming up?"},
+    ],
+    cooking: [
+        {icon:'👨‍🍳', text:"I'd like to help with the cooking today."},
+        {icon:'📖', text:"Can we try a new recipe?"},
+        {icon:'👀', text:"I'd prefer to watch, if that's okay."},
+        {icon:'🍪', text:"Can we bake something together?"},
+    ],
+    weather: [
+        {icon:'☀️', text:"What's the weather like today?"},
+        {icon:'🌧️', text:"I hope it doesn't rain."},
+        {icon:'🧥', text:"Do I need a jacket?"},
+        {icon:'🏖️', text:"It's a beautiful day — can we go outside?"},
+    ],
+    transport: [
+        {icon:'🚗', text:"When are we leaving?"},
+        {icon:'⏰', text:"I need a few more minutes before we go."},
+        {icon:'💺', text:"Can I sit in my preferred spot?"},
+        {icon:'🚶', text:"I'd rather walk, if possible."},
+        {icon:'🎧', text:"Can I use my headphones in the car?"},
+    ],
+    shopping: [
+        {icon:'🛒', text:"I need to buy something."},
+        {icon:'👕', text:"I'd like to look at clothes."},
+        {icon:'💰', text:"How much money do I have to spend?"},
+        {icon:'⏰', text:"How long will we be at the shops?"},
+        {icon:'🔊', text:"Can we avoid the busy times? It gets overwhelming."},
+    ],
+    money: [
+        {icon:'💰', text:"How much pocket money do I have?"},
+        {icon:'🎯', text:"I'm saving up for something."},
+        {icon:'💸', text:"I'd like to buy something with my money."},
+        {icon:'❓', text:"Is that expensive?"},
+    ],
+    time: [
+        {icon:'⏰', text:"What time is it?"},
+        {icon:'📅', text:"What's happening today?"},
+        {icon:'⏳', text:"How long until we need to leave?"},
+        {icon:'🏃', text:"Are we running late?"},
+        {icon:'📋', text:"What's the plan for tomorrow?"},
+    ],
+    technology: [
+        {icon:'📱', text:"Can I use the iPad, please?"},
+        {icon:'🔋', text:"My device needs charging."},
+        {icon:'🔧', text:"Something isn't working properly."},
+        {icon:'📶', text:"Is the wifi working?"},
+        {icon:'🎮', text:"Can I have some screen time?"},
+    ],
+    appearance: [
+        {icon:'👕', text:"I don't know what to wear."},
+        {icon:'😣', text:"These clothes don't feel comfortable."},
+        {icon:'✅', text:"I'm happy with what I'm wearing."},
+        {icon:'🔄', text:"I want to change my outfit."},
+    ],
+    holidays: [
+        {icon:'🎉', text:"I'm looking forward to the holiday."},
+        {icon:'🎁', text:"I have an idea for a present."},
+        {icon:'🤫', text:"Can we keep the celebration small?"},
+        {icon:'📋', text:"What are we doing for the holiday?"},
+        {icon:'😰', text:"I'm a bit worried about the event being overwhelming."},
+    ],
+    math: [
+        {icon:'📐', text:"I've been thinking about an interesting maths problem."},
+        {icon:'💡', text:"I found a fascinating pattern I'd like to discuss."},
+        {icon:'🤔', text:"I'm stuck on something and could use a different perspective."},
+        {icon:'🎯', text:"I'd like to try something more challenging."},
+        {icon:'📊', text:"Can we explore a new area of mathematics?"},
+        {icon:'✨', text:"I discovered something elegant in my working today."},
+    ],
+    english: [
+        {icon:'📖', text:"I'd like to discuss the book I've been reading."},
+        {icon:'✍️', text:"I have an idea for a story I want to write."},
+        {icon:'🤔', text:"I've been analysing a character and have some thoughts."},
+        {icon:'💭', text:"I noticed an interesting literary technique."},
+        {icon:'📝', text:"Can we work on my writing today?"},
+    ],
+    science: [
+        {icon:'🔬', text:"I have a question about something scientific."},
+        {icon:'💡', text:"I've been thinking about an experiment we could try."},
+        {icon:'🌍', text:"I read something fascinating about the natural world."},
+        {icon:'🧪', text:"Can we do a hands-on experiment?"},
+    ],
+    story: [
+        {icon:'📚', text:"I'm ready to look at the story."},
+        {icon:'🔍', text:"I want to analyse the characters."},
+        {icon:'💭', text:"I have observations about the picture."},
+        {icon:'🎭', text:"I can see some interesting emotions in this scene."},
+        {icon:'🤔', text:"I think I understand what's motivating this character."},
+        {icon:'📖', text:"Can we read the next part?"},
+    ],
+    school: [
+        {icon:'📚', text:"I need to talk about something from school."},
+        {icon:'📝', text:"I have homework I need help with."},
+        {icon:'😊', text:"Something good happened at school today."},
+        {icon:'😔', text:"I had a difficult day at school."},
+        {icon:'📅', text:"I have a test coming up."},
+        {icon:'💬', text:"Something happened with a classmate."},
+    ],
+    friends: [
+        {icon:'👫', text:"I'd like to arrange to see a friend."},
+        {icon:'💬', text:"Something happened with my friend that I want to discuss."},
+        {icon:'🎉', text:"I've been invited somewhere and want to talk about it."},
+        {icon:'😔', text:"I'm feeling a bit lonely."},
+        {icon:'💭', text:"I'm thinking about my friendships."},
+    ],
+    gaming: [
+        {icon:'🎮', text:"I want to tell you about my game."},
+        {icon:'🏆', text:"I achieved something in my game today!"},
+        {icon:'🤔', text:"I've been thinking about game strategy."},
+        {icon:'👥', text:"Can I play online with my friends?"},
+        {icon:'⏰', text:"Can I have more gaming time today?"},
+    ],
+    movies_tv: [
+        {icon:'🎬', text:"Can we watch something together?"},
+        {icon:'💭', text:"I want to discuss what we watched."},
+        {icon:'🆕', text:"I heard about something new I'd like to watch."},
+        {icon:'⭐', text:"I'd like to rewatch a favourite."},
+    ],
+    music: [
+        {icon:'🎵', text:"Can I listen to some music?"},
+        {icon:'🎶', text:"I discovered a song I really like."},
+        {icon:'🔊', text:"Can we play music together?"},
+        {icon:'🤫', text:"I need quiet right now — no music, please."},
+    ],
+    sports: [
+        {icon:'⚽', text:"I'd like to do something active."},
+        {icon:'📺', text:"Can we watch the game?"},
+        {icon:'🏃', text:"I want to go for a walk or run."},
+        {icon:'🏊', text:"Can we go swimming?"},
+    ],
+    pets: [
+        {icon:'🐕', text:"I'd like to spend time with the pet."},
+        {icon:'🦮', text:"Can I walk the dog?"},
+        {icon:'🍽️', text:"I think the pet needs feeding."},
+        {icon:'💭', text:"I want to talk about getting a pet."},
+    ],
+    feelings: [
+        {icon:'😊', text:"I'm feeling good and wanted to share that."},
+        {icon:'😔', text:"I'm not feeling great and I'd like to talk about it."},
+        {icon:'😤', text:"I'm frustrated about something."},
+        {icon:'😰', text:"I'm feeling anxious and I'm not sure why."},
+        {icon:'🤗', text:"I appreciate you being here."},
+        {icon:'💭', text:"I have something on my mind."},
+        {icon:'😴', text:"I'm feeling overwhelmed and need a break."},
+    ],
+    sensory: [
+        {icon:'🔊', text:"It's too loud. I need it quieter, please."},
+        {icon:'💡', text:"The light is bothering me."},
+        {icon:'🤢', text:"There's a smell that's making me uncomfortable."},
+        {icon:'🧤', text:"Something I'm touching doesn't feel right."},
+        {icon:'😵', text:"Everything is too much right now. I need space."},
+        {icon:'🎧', text:"Can I use my headphones?"},
+    ],
+    _default: [
+        {icon:'💬', text:"I'd like to talk about something."},
+        {icon:'❓', text:"I have a question."},
+        {icon:'💭', text:"I've been thinking about something."},
+        {icon:'🆘', text:"I need help with something."},
+    ],
+};
 
 // ============================================================
 // CONTEXTUAL PREDICTION ENGINE V2
@@ -2119,9 +2363,108 @@ const app = {
         setTimeout(() => el.classList.remove('speaking-active'), 2000);
     },
 
+    // ===== TOPIC LAUNCHER =====
+    openTopicLauncher() {
+        document.getElementById('contextBadge').textContent = '🗣️ Start Talking';
+        document.getElementById('backBtn').classList.add('visible');
+        this.renderTopicGrid();
+        this.showScreen('topicLaunchScreen');
+    },
+
+    renderTopicGrid() {
+        const groups = [
+            {label:'Daily Living', topics:[
+                {id:'food',     icon:'🍕', name:'Food'},
+                {id:'drink',    icon:'🥤', name:'Drink'},
+                {id:'hygiene',  icon:'🚿', name:'Hygiene'},
+                {id:'sleep',    icon:'😴', name:'Sleep'},
+                {id:'chores',   icon:'🧹', name:'Chores'},
+                {id:'health',   icon:'🏥', name:'Health'},
+                {id:'cooking',  icon:'👨‍🍳', name:'Cooking'},
+                {id:'weather',  icon:'☀️', name:'Weather'},
+            ]},
+            {label:'Practical', topics:[
+                {id:'transport', icon:'🚗', name:'Transport'},
+                {id:'shopping',  icon:'🛒', name:'Shopping'},
+                {id:'money',     icon:'💰', name:'Money'},
+                {id:'time',      icon:'⏰', name:'Time'},
+                {id:'technology',icon:'📱', name:'Tech'},
+                {id:'appearance',icon:'👕', name:'Clothes'},
+                {id:'holidays',  icon:'🎉', name:'Holidays'},
+            ]},
+            {label:'Academic', topics:[
+                {id:'math',    icon:'📐', name:'Maths'},
+                {id:'english', icon:'📖', name:'English'},
+                {id:'science', icon:'🔬', name:'Science'},
+                {id:'school',  icon:'🏫', name:'School'},
+                {id:'story',   icon:'📚', name:'Story'},
+            ]},
+            {label:'Social', topics:[
+                {id:'friends',   icon:'👫', name:'Friends'},
+                {id:'gaming',    icon:'🎮', name:'Gaming'},
+                {id:'movies_tv', icon:'🎬', name:'Movies'},
+                {id:'music',     icon:'🎵', name:'Music'},
+                {id:'sports',    icon:'⚽', name:'Sports'},
+                {id:'pets',      icon:'🐕', name:'Pets'},
+            ]},
+            {label:'How I Feel', topics:[
+                {id:'feelings', icon:'💭', name:'Feelings'},
+                {id:'sensory',  icon:'🔊', name:'Sensory'},
+            ]},
+        ];
+
+        const grid = document.getElementById('topicGrid');
+        let html = '';
+        groups.forEach(g => {
+            html += `<div class="topic-group-label">${g.label}</div>`;
+            g.topics.forEach(t => {
+                html += `<div class="topic-tile" data-topic="${t.id}" onclick="app.selectTopic('${t.id}','${t.icon}','${t.name}')"><div class="topic-icon">${t.icon}</div><div class="topic-name">${t.name}</div></div>`;
+            });
+        });
+        grid.innerHTML = html;
+        document.getElementById('starterPanel').classList.remove('visible');
+    },
+
+    selectTopic(topicId, icon, name) {
+        document.querySelectorAll('.topic-tile').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.topic-tile[data-topic="${topicId}"]`)?.classList.add('active');
+
+        const starters = TOPIC_STARTERS[topicId] || TOPIC_STARTERS._default;
+        const panel = document.getElementById('starterPanel');
+        document.getElementById('starterHeader').textContent = `${icon} ${name} — What do you want to say?`;
+        document.getElementById('starterCards').innerHTML = starters.map(s => {
+            const escaped = s.text.replace(/'/g, "\\'");
+            return `<button class="starter-btn" onclick="app.speakStarter('${escaped}','${topicId}')"><span class="starter-icon">${s.icon || '💬'}</span>${s.text}${s.hint ? `<span class="starter-hint">${s.hint}</span>` : ''}</button>`;
+        }).join('');
+        panel.classList.add('visible');
+        panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+    },
+
+    speakStarter(text, topicId) {
+        speakText(text);
+        conversationMemory.remember(topicId, [topicId], 3);
+        trackUsage('conversation', text);
+        showToast('🗣️ Loading context...');
+
+        const contextMap = {
+            food:'home', drink:'home', hygiene:'home', sleep:'home', chores:'home', cooking:'home',
+            transport:'home', shopping:'home', weather:'home', appearance:'home',
+            math:'math', english:'story', science:'school', school:'school', story:'story',
+            gaming:'gaming', movies_tv:'gaming', music:'gaming', sports:'gaming',
+            friends:'conversation', feelings:'conversation', sensory:'sensory',
+            money:'conversation', time:'conversation', technology:'conversation', holidays:'conversation', pets:'conversation',
+        };
+        const targetContext = contextMap[topicId] || 'conversation';
+
+        setTimeout(() => {
+            this.loadContext(targetContext);
+            startListening();
+        }, 1500);
+    },
+
     renderHome() {
         const grid = document.getElementById('contextGrid');
-        const groups = {urgent:'⚡ Quick Access', activities:'Activity Contexts', life:'Everyday Life', languages:'Languages', tools:'Tools'};
+        const groups = {urgent:'⚡ Quick Access', life:'Everyday', languages:'Languages', tools:'Tools'};
         let html = '';
         for (const [gid, glabel] of Object.entries(groups)) {
             const ctxs = CONTEXTS.filter(c => c.group === gid);
@@ -2136,6 +2479,7 @@ const app = {
                 if (ctx.comingSoon) action = `showToast('${ctx.label} — coming soon!')`;
                 else if (ctx.id === 'settings') action = `app.openSettings()`;
                 else if (ctx.id === 'sensory') action = `app.openSOS()`;
+                else if (ctx.id === 'topicLaunch') action = `app.openTopicLauncher()`;
                 else action = `app.loadContext('${ctx.id}')`;
                 return `<div class="context-tile${ctx.comingSoon?' coming-soon':''}${isUrgent?' urgent-tile':''}" onclick="${action}"><div class="tile-icon">${ctx.icon}</div><div style="${isUrgent?'text-align:left':''}"><div class="tile-label">${ctx.label}</div>${total?`<div class="tile-count">${total} phrases${isUrgent?' — sensory, overwhelm, needs':''}</div>`:''}</div></div>`;
             }).join('');

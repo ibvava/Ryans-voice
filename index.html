@@ -432,8 +432,8 @@
 <!-- OT REPORT -->
 <div class="screen" id="reportScreen">
     <div class="report-scroll">
-        <div class="report-header">📋 OT / Carer Report</div>
-        <div class="report-sub">Usage data, conversation logs, and error tracking</div>
+        <div class="report-header">🛠️ Developer Report</div>
+        <div class="report-sub" id="reportSub">Usage data, conversation logs, and error tracking → ibvava@gmail.com</div>
 
         <div class="report-period-btns">
             <button class="report-period-btn active" onclick="app.renderReport('today',this)">Today</button>
@@ -452,7 +452,7 @@
         <div class="report-actions">
             <button class="report-action-btn primary" onclick="app.exportReport()">📋 Copy Report</button>
             <button class="report-action-btn" onclick="app.downloadReport()">💾 Download</button>
-            <button class="report-action-btn" onclick="app.emailReport()">📧 Email</button>
+            <button class="report-action-btn" onclick="app.emailReport()">📧 Email to Dev</button>
         </div>
     </div>
     <div class="bottom-nav">
@@ -493,10 +493,9 @@
             <div id="predictionInsights" style="color:var(--text-secondary);font-size:14px;">Loading...</div>
         </div>
         <div class="settings-section">
-            <div class="settings-section-title">📋 OT / Therapist Report</div>
-            <div class="settings-section-desc">Export a detailed usage report for Ryan's OT or speech therapist. Includes phrase patterns, time-of-day data, sequences, and session history.</div>
-            <button class="modal-btn save" style="max-width:250px;margin-bottom:10px;" onclick="app.exportOTReport()">📋 Generate & Copy Report</button>
-            <button class="modal-btn cancel" style="max-width:250px;" onclick="app.downloadOTReport()">💾 Download as File</button>
+            <div class="settings-section-title">🛠️ Developer Report</div>
+            <div class="settings-section-desc">View usage data, errors, and conversation logs.</div>
+            <button class="modal-btn save" style="max-width:250px;" onclick="app.openReport()">🛠️ Open Dev Report</button>
         </div>
         <div class="settings-section">
             <div class="settings-section-title">Reset Data</div>
@@ -941,7 +940,7 @@ const CONTEXTS = [
     {id:"home",        icon:"🏡", label:"At Home",           group:"life"},
     {id:"malayalam",   icon:"🇮🇳", label:"Malayalam",         group:"languages"},
     {id:"writing",     icon:"✍️", label:"I want to write",   group:"tools", comingSoon:true},
-    {id:"report",      icon:"📋", label:"OT Report",         group:"tools"},
+    {id:"report",      icon:"🛠️", label:"Dev Report",         group:"tools"},
     {id:"settings",    icon:"⚙️", label:"Settings",          group:"tools"},
 ];
 
@@ -3182,7 +3181,7 @@ const app = {
 
     // ===== OT REPORT SYSTEM =====
     openReport() {
-        document.getElementById('contextBadge').textContent = '📋 OT Report';
+        document.getElementById('contextBadge').textContent = '🛠️ Dev Report';
         document.getElementById('backBtn').classList.add('visible');
         this.renderReport('today');
         this.showScreen('reportScreen');
@@ -3196,6 +3195,7 @@ const app = {
         }
 
         const d = loadData();
+
         const now = Date.now();
         const cutoffs = {
             today: now - 24*60*60*1000,
@@ -3352,7 +3352,7 @@ const app = {
         convoLog.forEach(l => { if (l.topic) topicCounts[l.topic] = (topicCounts[l.topic]||0)+1; });
         const topTopics = Object.entries(topicCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-        let report = `📋 RYAN'S AAC — OT REPORT\n`;
+        let report = `🛠️ RYAN'S AAC — DEVELOPER REPORT\n`;
         report += `Generated: ${new Date().toLocaleString('en-AU')}\n`;
         report += `Period: ${period === 'today' ? 'Today' : period === 'week' ? 'This Week' : 'All Time'}\n`;
         report += `${'='.repeat(50)}\n\n`;
@@ -3441,9 +3441,22 @@ const app = {
 
     emailReport() {
         const report = this.generateReportText('week');
-        const subject = encodeURIComponent(`Ryan's AAC Report — ${new Date().toLocaleDateString('en-AU')}`);
+        const toEmail = 'ibvava@gmail.com';
+        const subject = encodeURIComponent(`Ryan's AAC Dev Report — ${new Date().toLocaleDateString('en-AU')}`);
         const body = encodeURIComponent(report);
-        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        const mailtoUrl = `mailto:${toEmail}?subject=${subject}&body=${body}`;
+
+        const win = window.open(mailtoUrl, '_blank');
+        if (!win) {
+            const a = document.createElement('a');
+            a.href = mailtoUrl;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        navigator.clipboard.writeText(report).catch(()=>{});
+        showToast('📧 Opening Mail to ibvava@gmail.com (report also copied)', 'success');
     }
 };
 

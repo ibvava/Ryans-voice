@@ -2369,6 +2369,8 @@ const app = {
         document.getElementById('backBtn').classList.add('visible');
         this.renderTopicGrid();
         this.showScreen('topicLaunchScreen');
+        // Start listening immediately so we don't miss any speech
+        startListening();
     },
 
     renderTopicGrid() {
@@ -2441,10 +2443,13 @@ const app = {
     },
 
     speakStarter(text, topicId) {
+        // Mute mic briefly while TTS speaks (so it doesn't hear itself)
+        const wasListening = isListening;
+        if (wasListening) stopListening();
+        
         speakText(text);
         conversationMemory.remember(topicId, [topicId], 3);
         trackUsage('conversation', text);
-        showToast('🗣️ Loading context...');
 
         const contextMap = {
             food:'home', drink:'home', hygiene:'home', sleep:'home', chores:'home', cooking:'home',
@@ -2456,10 +2461,24 @@ const app = {
         };
         const targetContext = contextMap[topicId] || 'conversation';
 
+        // Wait for TTS to finish, then immediately load context and resume listening
+        const checkTTS = setInterval(() => {
+            if (!speechSynthesis.speaking) {
+                clearInterval(checkTTS);
+                this.loadContext(targetContext);
+                // Resume listening immediately — don't miss the response
+                startListening();
+            }
+        }, 100);
+        
+        // Safety: if TTS takes too long (>5s), load context anyway
         setTimeout(() => {
-            this.loadContext(targetContext);
-            startListening();
-        }, 1500);
+            clearInterval(checkTTS);
+            if (this.currentContext !== targetContext) {
+                this.loadContext(targetContext);
+            }
+            if (!isListening) startListening();
+        }, 5000);
     },
 
     renderHome() {

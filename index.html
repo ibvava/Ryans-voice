@@ -380,6 +380,17 @@
             <div id="usageStatsContent" style="color:var(--text-secondary);font-size:14px;">Loading...</div>
         </div>
         <div class="settings-section">
+            <div class="settings-section-title">📊 Prediction Insights</div>
+            <div class="settings-section-desc">How the app is learning your patterns.</div>
+            <div id="predictionInsights" style="color:var(--text-secondary);font-size:14px;">Loading...</div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-section-title">📋 OT / Therapist Report</div>
+            <div class="settings-section-desc">Export a detailed usage report for Ryan's OT or speech therapist. Includes phrase patterns, time-of-day data, sequences, and session history.</div>
+            <button class="modal-btn save" style="max-width:250px;margin-bottom:10px;" onclick="app.exportOTReport()">📋 Generate & Copy Report</button>
+            <button class="modal-btn cancel" style="max-width:250px;" onclick="app.downloadOTReport()">💾 Download as File</button>
+        </div>
+        <div class="settings-section">
             <div class="settings-section-title">Reset Data</div>
             <div class="settings-section-desc">Clear all usage history and custom phrases.</div>
             <button class="modal-btn cancel" style="max-width:200px;" onclick="if(confirm('Reset all data? This cannot be undone.')){localStorage.removeItem('ryans-aac-data');showToast('Data reset','success');app.renderHome();}">Reset All Data</button>
@@ -784,7 +795,7 @@ const CONTEXTS = [
 ];
 
 // ============================================================
-// PERSISTENCE & USAGE TRACKING
+// PERSISTENCE & ADAPTIVE PREDICTION ENGINE (Phase 2D)
 // ============================================================
 const STORAGE_KEY = "ryans-aac-data";
 
@@ -797,36 +808,317 @@ function loadData() {
         if (!d.usage) d.usage = {};  // { "context:cardtext": { count, lastUsed, timestamps[] } }
         if (!d.totalSpoken) d.totalSpoken = 0;
         if (!d.sessionStart) d.sessionStart = Date.now();
+        // Phase 2D additions
+        if (!d.sequences) d.sequences = {};    // { "context:phraseA" : { "phraseB": count, "phraseC": count } }
+        if (!d.hourBuckets) d.hourBuckets = {};// { "context:hour(0-23)": { "phraseText": count } }
+        if (!d.catPrefs) d.catPrefs = {};      // { "context": { "emotions": count, "social": count } }
+        if (!d.sessions) d.sessions = [];       // [{ start, end, context, cardCount, phrases[] }]
+        if (!d.dailyPatterns) d.dailyPatterns = {}; // { "dayOfWeek(0-6)": { "context": count } }
         return d;
-    } catch { return {customCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now()}; }
+    } catch { return {customCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now(),sequences:{},hourBuckets:{},catPrefs:{},sessions:[],dailyPatterns:{}}; }
 }
 
 function saveData(d) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
 }
 
-function trackUsage(contextId, cardText) {
+// Last spoken phrase — for sequence tracking
+let lastSpokenKey = null;
+let lastSpokenTime = 0;
+
+function trackUsage(contextId, cardText, category) {
     const d = loadData();
     const key = contextId + ':' + cardText;
+    const now = Date.now();
+    const hour = new Date().getHours();
+    const day = new Date().getDay();
+
+    // 1. Basic usage (existing)
     if (!d.usage[key]) d.usage[key] = {count:0, lastUsed:0, timestamps:[]};
     d.usage[key].count++;
-    d.usage[key].lastUsed = Date.now();
-    d.usage[key].timestamps.push(Date.now());
-    // Keep only last 50 timestamps per card
+    d.usage[key].lastUsed = now;
+    d.usage[key].timestamps.push(now);
     if (d.usage[key].timestamps.length > 50) d.usage[key].timestamps = d.usage[key].timestamps.slice(-50);
     d.totalSpoken = (d.totalSpoken || 0) + 1;
+
+    // 2. Sequence tracking — what does Ryan say AFTER this phrase?
+    if (lastSpokenKey && (now - lastSpokenTime) < 120000) { // Within 2 minutes = same conversation flow
+        if (!d.sequences[lastSpokenKey]) d.sequences[lastSpokenKey] = {};
+        d.sequences[lastSpokenKey][cardText] = (d.sequences[lastSpokenKey][cardText] || 0) + 1;
+    }
+    lastSpokenKey = key;
+    lastSpokenTime = now;
+
+    // 3. Time-of-day patterns — which phrases at which hour?
+    const hourKey = contextId + ':' + hour;
+    if (!d.hourBuckets[hourKey]) d.hourBuckets[hourKey] = {};
+    d.hourBuckets[hourKey][cardText] = (d.hourBuckets[hourKey][cardText] || 0) + 1;
+
+    // 4. Category preference per context
+    if (category) {
+        if (!d.catPrefs[contextId]) d.catPrefs[contextId] = {};
+        d.catPrefs[contextId][category] = (d.catPrefs[contextId][category] || 0) + 1;
+    }
+
+    // 5. Day-of-week patterns
+    const dayKey = day.toString();
+    if (!d.dailyPatterns[dayKey]) d.dailyPatterns[dayKey] = {};
+    d.dailyPatterns[dayKey][contextId] = (d.dailyPatterns[dayKey][contextId] || 0) + 1;
+
+    // 6. Session tracking
+    const lastSession = d.sessions[d.sessions.length - 1];
+    if (lastSession && (now - lastSession.lastActivity) < 300000 && lastSession.context === contextId) {
+        // Same session (within 5 min gap, same context)
+        lastSession.lastActivity = now;
+        lastSession.cardCount++;
+        if (lastSession.phrases.length < 100) lastSession.phrases.push(cardText);
+    } else {
+        // New session
+        d.sessions.push({start:now, lastActivity:now, context:contextId, cardCount:1, phrases:[cardText]});
+        if (d.sessions.length > 200) d.sessions = d.sessions.slice(-200);
+    }
+
     saveData(d);
 }
+
+// ---- ADAPTIVE SCORING ENGINE ----
 
 function getCardScore(contextId, cardText) {
     const d = loadData();
     const key = contextId + ':' + cardText;
     const u = d.usage[key];
     if (!u) return 0;
-    // Score = frequency * recency weight
     const hoursSinceUse = (Date.now() - u.lastUsed) / 3600000;
-    const recency = Math.max(0, 1 - hoursSinceUse / 168); // Decays over 1 week
+    const recency = Math.max(0, 1 - hoursSinceUse / 168);
     return u.count * (0.5 + 0.5 * recency);
+}
+
+function getAdaptiveScore(contextId, cardText, category) {
+    const d = loadData();
+    const now = Date.now();
+    const hour = new Date().getHours();
+    let score = 0;
+
+    // 1. Base frequency + recency (existing logic)
+    score += getCardScore(contextId, cardText);
+
+    // 2. Sequence bonus — if Ryan just said X, and he often follows X with this card
+    if (lastSpokenKey && d.sequences[lastSpokenKey]) {
+        const seqCount = d.sequences[lastSpokenKey][cardText] || 0;
+        if (seqCount > 0) {
+            score += seqCount * 3; // Strong signal — he's done this pattern before
+        }
+    }
+
+    // 3. Time-of-day bonus — does Ryan use this phrase at this hour?
+    const hourKey = contextId + ':' + hour;
+    if (d.hourBuckets[hourKey] && d.hourBuckets[hourKey][cardText]) {
+        score += d.hourBuckets[hourKey][cardText] * 1.5;
+    }
+    // Also check adjacent hours (+/- 1)
+    const prevHour = contextId + ':' + ((hour + 23) % 24);
+    const nextHour = contextId + ':' + ((hour + 1) % 24);
+    if (d.hourBuckets[prevHour]?.[cardText]) score += d.hourBuckets[prevHour][cardText] * 0.5;
+    if (d.hourBuckets[nextHour]?.[cardText]) score += d.hourBuckets[nextHour][cardText] * 0.5;
+
+    // 4. Category preference bonus — if Ryan prefers this category in this context
+    if (category && d.catPrefs[contextId]) {
+        const totalCatUse = Object.values(d.catPrefs[contextId]).reduce((s,v) => s+v, 0);
+        if (totalCatUse > 5) { // Only after enough data
+            const catShare = (d.catPrefs[contextId][category] || 0) / totalCatUse;
+            if (catShare > 0.4) score += 2; // Strong preference for this category
+            if (catShare > 0.6) score += 3; // Very strong
+        }
+    }
+
+    // 5. Session fatigue detection — surface "I need a break" after long sessions
+    const sessions = d.sessions;
+    if (sessions.length > 0) {
+        const current = sessions[sessions.length - 1];
+        const sessionMinutes = (now - current.start) / 60000;
+        if (sessionMinutes > 15) {
+            // Boost break/rest cards
+            const breakPhrases = ['I need a break','I need a break. 5 minutes.','I\'m feeling overwhelmed.','I need a break right now.','I\'m a bit tired.'];
+            if (breakPhrases.some(bp => cardText.toLowerCase().includes(bp.toLowerCase()))) {
+                score += 4 + (sessionMinutes - 15) * 0.3; // Gets stronger over time
+            }
+        }
+    }
+
+    return score;
+}
+
+// Get sequence predictions — "after Ryan said X, he usually says..."
+function getSequencePredictions(contextId, limit) {
+    const d = loadData();
+    if (!lastSpokenKey || !d.sequences[lastSpokenKey]) return [];
+    const seqs = d.sequences[lastSpokenKey];
+    return Object.entries(seqs)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, limit || 3)
+        .map(([text, count]) => ({text, count, type:'sequence'}));
+}
+
+// Get time-of-day predictions
+function getTimeOfDayPredictions(contextId, limit) {
+    const d = loadData();
+    const hour = new Date().getHours();
+    const hourKey = contextId + ':' + hour;
+    if (!d.hourBuckets[hourKey]) return [];
+    return Object.entries(d.hourBuckets[hourKey])
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, limit || 3)
+        .map(([text, count]) => ({text, count, type:'timeOfDay'}));
+}
+
+// Get preferred category for this context
+function getPreferredCategory(contextId) {
+    const d = loadData();
+    if (!d.catPrefs[contextId]) return null;
+    const entries = Object.entries(d.catPrefs[contextId]);
+    if (entries.length === 0) return null;
+    const total = entries.reduce((s,[,v]) => s+v, 0);
+    if (total < 10) return null; // Need enough data
+    const top = entries.sort((a,b) => b[1] - a[1])[0];
+    const share = top[1] / total;
+    if (share > 0.4) return {category:top[0], share:Math.round(share*100)};
+    return null;
+}
+
+// Get session info
+function getSessionInfo() {
+    const d = loadData();
+    const sessions = d.sessions;
+    if (sessions.length === 0) return null;
+    const current = sessions[sessions.length - 1];
+    const now = Date.now();
+    if ((now - current.lastActivity) > 300000) return null; // Session ended >5 min ago
+    return {
+        minutes: Math.round((now - current.start) / 60000),
+        cardCount: current.cardCount,
+        context: current.context,
+        isLong: (now - current.start) > 900000, // >15 min
+    };
+}
+
+// Generate prediction summary for the UI
+function getPredictionSummary(contextId) {
+    const predictions = [];
+    
+    // Sequence predictions
+    const seqs = getSequencePredictions(contextId, 2);
+    seqs.forEach(s => predictions.push({text:s.text, score:s.count*3, reason:'🔗 You often say this next'}));
+
+    // Time-of-day predictions
+    const timePs = getTimeOfDayPredictions(contextId, 2);
+    timePs.forEach(t => predictions.push({text:t.text, score:t.count*1.5, reason:'🕐 Common at this time'}));
+
+    // Category preference
+    const catPref = getPreferredCategory(contextId);
+
+    // Session awareness
+    const session = getSessionInfo();
+
+    return {predictions, catPref, session};
+}
+
+// ---- OT DATA EXPORT ----
+function generateOTReport() {
+    const d = loadData();
+    const now = new Date();
+    let report = `RYAN'S AAC USAGE REPORT\nGenerated: ${now.toLocaleDateString('en-AU')} ${now.toLocaleTimeString('en-AU')}\n`;
+    report += `${'='.repeat(50)}\n\n`;
+
+    // Overall stats
+    report += `OVERALL STATISTICS\n`;
+    report += `Total phrases spoken: ${d.totalSpoken}\n`;
+    report += `Unique phrases used: ${Object.keys(d.usage).length}\n`;
+    report += `Sessions recorded: ${d.sessions.length}\n\n`;
+
+    // Top phrases
+    report += `TOP 20 MOST USED PHRASES\n`;
+    const topPhrases = Object.entries(d.usage).sort((a,b) => b[1].count - a[1].count).slice(0,20);
+    topPhrases.forEach(([key, u], i) => {
+        const [ctx, ...textParts] = key.split(':');
+        const text = textParts.join(':');
+        report += `${i+1}. [${ctx}] "${text}" — ${u.count}× (last: ${new Date(u.lastUsed).toLocaleDateString('en-AU')})\n`;
+    });
+    report += '\n';
+
+    // Time-of-day patterns
+    report += `TIME-OF-DAY PATTERNS\n`;
+    const hourTotals = {};
+    Object.entries(d.hourBuckets).forEach(([key, phrases]) => {
+        const hour = parseInt(key.split(':').pop());
+        hourTotals[hour] = (hourTotals[hour] || 0) + Object.values(phrases).reduce((s,v) => s+v, 0);
+    });
+    for (let h = 6; h <= 22; h++) {
+        const count = hourTotals[h] || 0;
+        const bar = '█'.repeat(Math.min(count, 30));
+        const label = h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h-12}pm`;
+        if (count > 0) report += `  ${label.padStart(4)}: ${bar} (${count})\n`;
+    }
+    report += '\n';
+
+    // Category preferences
+    report += `CATEGORY PREFERENCES BY CONTEXT\n`;
+    Object.entries(d.catPrefs).forEach(([ctx, cats]) => {
+        const total = Object.values(cats).reduce((s,v) => s+v, 0);
+        report += `  ${ctx}:\n`;
+        Object.entries(cats).sort((a,b) => b[1] - a[1]).forEach(([cat, count]) => {
+            const pct = Math.round(count/total*100);
+            report += `    ${cat}: ${pct}% (${count}×)\n`;
+        });
+    });
+    report += '\n';
+
+    // Sequence patterns
+    report += `COMMON PHRASE SEQUENCES (says A → then B)\n`;
+    const seqEntries = Object.entries(d.sequences)
+        .map(([key, followers]) => {
+            const topFollower = Object.entries(followers).sort((a,b) => b[1] - a[1])[0];
+            if (!topFollower || topFollower[1] < 2) return null;
+            const [,phraseA] = key.split(':').length > 1 ? [key.split(':')[0], key.split(':').slice(1).join(':')] : ['?', key];
+            return {a:phraseA, b:topFollower[0], count:topFollower[1]};
+        })
+        .filter(Boolean)
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 15);
+    seqEntries.forEach(s => {
+        report += `  "${s.a.substring(0,40)}" → "${s.b.substring(0,40)}" (${s.count}×)\n`;
+    });
+    report += '\n';
+
+    // Session analysis
+    report += `SESSION ANALYSIS (last 20 sessions)\n`;
+    const recentSessions = d.sessions.slice(-20);
+    recentSessions.forEach((s, i) => {
+        const duration = Math.round((s.lastActivity - s.start) / 60000);
+        const date = new Date(s.start);
+        report += `  ${date.toLocaleDateString('en-AU')} ${date.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'})}: ${duration} min, ${s.cardCount} phrases [${s.context}]\n`;
+    });
+    report += '\n';
+
+    // Average session
+    if (recentSessions.length > 0) {
+        const avgDuration = recentSessions.reduce((s,ss) => s + (ss.lastActivity - ss.start), 0) / recentSessions.length / 60000;
+        const avgCards = recentSessions.reduce((s,ss) => s + ss.cardCount, 0) / recentSessions.length;
+        report += `  Average session: ${Math.round(avgDuration)} min, ${Math.round(avgCards)} phrases\n\n`;
+    }
+
+    // Day-of-week patterns
+    report += `DAY-OF-WEEK USAGE\n`;
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    for (let d2 = 0; d2 < 7; d2++) {
+        const dayData = d.dailyPatterns[d2.toString()];
+        if (dayData) {
+            const total = Object.values(dayData).reduce((s,v) => s+v, 0);
+            const contexts = Object.entries(dayData).sort((a,b) => b[1] - a[1]).map(([c,n]) => `${c}:${n}`).join(', ');
+            report += `  ${dayNames[d2]}: ${total} total (${contexts})\n`;
+        }
+    }
+
+    return report;
 }
 
 function getCardsForContext(contextId) {
@@ -836,11 +1128,11 @@ function getCardsForContext(contextId) {
     const custom = d.customCards[contextId] || [];
     let all = [...base.cards, ...custom];
 
-    // Smart reorder: cards with usage history float up
+    // Smart reorder: use adaptive score (Phase 2D)
     all.sort((a, b) => {
-        const sa = getCardScore(contextId, a.text);
-        const sb = getCardScore(contextId, b.text);
-        return sb - sa; // Higher score first
+        const sa = getAdaptiveScore(contextId, a.text, a.cat);
+        const sb = getAdaptiveScore(contextId, b.text, b.cat);
+        return sb - sa;
     });
 
     return all;
@@ -1411,6 +1703,14 @@ const app = {
         this.renderStats();
         this.showScreen('swipeScreen');
         this.updateCard();
+        this.updatePredictionHints();
+
+        // Auto-suggest preferred category if strong preference detected
+        const pref = getPreferredCategory(id);
+        if (pref && pref.share > 55) {
+            // Show a hint but don't auto-filter (respect user choice)
+            showToast(`Tip: you often use ${pref.category} (${pref.share}%) here`);
+        }
     },
 
     renderCategories(cats) {
@@ -1466,14 +1766,26 @@ const app = {
             subEl.style.display = 'block';
         }
 
-        // Show favourite badge if used 3+ times
-        const score = getCardScore(this.currentContext, card.text);
-        if (score >= 3) {
+        // Show adaptive prediction badges (Phase 2D)
+        const adaptiveScore = getAdaptiveScore(this.currentContext, card.text, card.cat);
+        const seqPredictions = getSequencePredictions(this.currentContext, 5);
+        const isSequenceMatch = seqPredictions.some(s => s.text === card.text);
+        const timePredictions = getTimeOfDayPredictions(this.currentContext, 5);
+        const isTimeMatch = timePredictions.some(t => t.text === card.text);
+        const baseScore = getCardScore(this.currentContext, card.text);
+
+        if (isSequenceMatch) {
+            freqEl.classList.add('visible');
+            freqEl.textContent = '🔗 You usually say this next';
+        } else if (isTimeMatch && baseScore < 3) {
+            freqEl.classList.add('visible');
+            freqEl.textContent = '🕐 Common at this time';
+        } else if (baseScore >= 3) {
             freqEl.classList.add('visible');
             freqEl.textContent = '⭐ Favourite';
-        } else if (score >= 1) {
+        } else if (baseScore >= 1) {
             freqEl.classList.add('visible');
-            freqEl.textContent = '📊 Used ' + Math.round(score) + '×';
+            freqEl.textContent = '📊 Used ' + Math.round(baseScore) + '×';
         }
 
         this.updateDots();
@@ -1519,11 +1831,14 @@ const app = {
     },
 
     speak() {
+        const fc = this.filteredCards;
+        const card = fc[this.index];
         const text = document.getElementById('phraseText').textContent;
         if (text && !['Loading...','No phrases here yet.'].includes(text)) {
-            // Track usage
-            if (this.currentContext) trackUsage(this.currentContext, text);
+            // Track usage with category for Phase 2D adaptive learning
+            if (this.currentContext) trackUsage(this.currentContext, text, card?.cat);
             this.renderStats();
+            this.updatePredictionHints();
 
             if (!speakText(text)) showToast('✓ ' + text);
         }
@@ -1552,6 +1867,29 @@ const app = {
         this.closeAddPhrase();
         showToast('✓ Phrase added!', 'success');
         this.renderHome();
+    },
+
+    // PREDICTION HINTS — update the stats bar with adaptive insights
+    updatePredictionHints() {
+        if (!this.currentContext) return;
+        const summary = getPredictionSummary(this.currentContext);
+        const bar = document.getElementById('statsBar');
+        const stats = getUsageStats();
+        const ctxCount = stats.contexts[this.currentContext] || 0;
+        let html = `<div class="stat-chip">Total: <span class="stat-val">${stats.total}</span></div>`;
+        html += `<div class="stat-chip">This context: <span class="stat-val">${ctxCount}</span></div>`;
+        
+        // Session timer
+        if (summary.session) {
+            html += `<div class="stat-chip">Session: <span class="stat-val">${summary.session.minutes}m</span>${summary.session.isLong?' ⚠️':''}</div>`;
+        }
+        
+        // Category preference
+        if (summary.catPref) {
+            html += `<div class="stat-chip">Prefers: <span class="stat-val">${summary.catPref.category} (${summary.catPref.share}%)</span></div>`;
+        }
+
+        bar.innerHTML = html;
     },
 
     // SCREEN NAV
@@ -1588,7 +1926,88 @@ const app = {
             });
         }
         el.innerHTML = html;
+
+        // Render prediction insights (Phase 2D)
+        const pi = document.getElementById('predictionInsights');
+        let piHtml = '';
+        const d = loadData();
+        
+        // Sequence patterns
+        const seqCount = Object.keys(d.sequences).length;
+        piHtml += `<p>🔗 Sequence patterns learned: <strong style="color:var(--accent-gold)">${seqCount}</strong></p>`;
+        
+        // Time buckets
+        const bucketCount = Object.keys(d.hourBuckets).length;
+        piHtml += `<p>🕐 Time-of-day patterns: <strong style="color:var(--accent-gold)">${bucketCount}</strong> data points</p>`;
+        
+        // Category preferences
+        const catContexts = Object.keys(d.catPrefs).length;
+        piHtml += `<p>📂 Category preferences tracked: <strong style="color:var(--accent-gold)">${catContexts}</strong> contexts</p>`;
+        Object.entries(d.catPrefs).forEach(([ctx, cats]) => {
+            const total = Object.values(cats).reduce((s,v) => s+v, 0);
+            if (total >= 5) {
+                const top = Object.entries(cats).sort((a,b) => b[1]-a[1])[0];
+                const pct = Math.round(top[1]/total*100);
+                piHtml += `<p style="margin:3px 0 3px 12px;font-size:12px;color:var(--text-muted)">• ${ctx}: prefers <strong>${top[0]}</strong> (${pct}%)</p>`;
+            }
+        });
+
+        // Sessions
+        piHtml += `<p style="margin-top:8px">📊 Sessions tracked: <strong style="color:var(--accent-gold)">${d.sessions.length}</strong></p>`;
+        if (d.sessions.length > 0) {
+            const avgDuration = d.sessions.reduce((s,ss) => s + (ss.lastActivity - ss.start), 0) / d.sessions.length / 60000;
+            piHtml += `<p style="margin:3px 0 3px 12px;font-size:12px;color:var(--text-muted)">• Average session: ${Math.round(avgDuration)} minutes</p>`;
+        }
+
+        // Top sequences
+        const topSeqs = Object.entries(d.sequences)
+            .map(([key, followers]) => {
+                const top = Object.entries(followers).sort((a,b) => b[1]-a[1])[0];
+                if (!top || top[1] < 2) return null;
+                return {a:key.split(':').slice(1).join(':'), b:top[0], count:top[1]};
+            })
+            .filter(Boolean)
+            .sort((a,b) => b.count - a.count)
+            .slice(0,5);
+        if (topSeqs.length > 0) {
+            piHtml += '<p style="margin-top:8px">🔗 Top phrase sequences:</p>';
+            topSeqs.forEach(s => {
+                piHtml += `<p style="margin:3px 0;padding:5px 10px;background:var(--bg-elevated);border-radius:8px;font-size:12px">"${s.a.substring(0,35)}…" → "${s.b.substring(0,35)}…" <span style="color:var(--accent-gold)">${s.count}×</span></p>`;
+            });
+        }
+
+        pi.innerHTML = piHtml || '<p>Not enough data yet. Keep using the app!</p>';
+
         this.showScreen('settingsScreen');
+    },
+
+    // OT Report Export
+    exportOTReport() {
+        const report = generateOTReport();
+        navigator.clipboard.writeText(report).then(() => {
+            showToast('📋 Report copied to clipboard!', 'success');
+        }).catch(() => {
+            // Fallback — show in a prompt
+            const ta = document.createElement('textarea');
+            ta.value = report; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('📋 Report copied!', 'success'); }
+            catch { showToast('Could not copy — try Download instead'); }
+            document.body.removeChild(ta);
+        });
+    },
+
+    downloadOTReport() {
+        const report = generateOTReport();
+        const blob = new Blob([report], {type:'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ryans-aac-report-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('💾 Report downloaded!', 'success');
     },
     selectVoice(name) {
         const v = getEnglishVoices().find(v => v.name === name);

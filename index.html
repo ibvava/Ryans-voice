@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ryan's AAC">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="Ryan's personalized communication app">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Ryan's Voice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-surface: #16213e;
+            --bg-elevated: #1f2b47;
+            --accent-primary: #6c63ff;
+            --accent-glow: #7c74ff;
+            --accent-warm: #ff6b6b;
+            --accent-success: #4ecdc4;
+            --accent-gold: #ffd93d;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8b8ba3;
+            --text-muted: #5a5a7a;
+            --border-subtle: rgba(108, 99, 255, 0.15);
+            --border-active: rgba(108, 99, 255, 0.4);
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 40px rgba(108, 99, 255, 0.15);
+            --radius-sm: 12px;
+            --radius-md: 18px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            padding: calc(var(--safe-top) + 8px) 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 22px;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .context-badge {
+            background: rgba(108, 99, 255, 0.15);
+            color: var(--accent-glow);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(108, 99, 255, 0.25);
+        }
+
+        .back-btn {
+            display: none;
+            background: rgba(108, 99, 255, 0.12);
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            color: var(--accent-glow);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .back-btn:active {
+            transform: scale(0.92);
+            background: rgba(108, 99, 255, 0.25);
+        }
+
+        .back-btn.visible {
+            display: flex;
+        }
+
+        /* ========== SCREENS ========== */
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* ========== HOME SCREEN ========== */
+        .home-scroll {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 24px 20px calc(var(--safe-bottom) + 20px);
+        }
+
+        .home-greeting {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .home-subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 28px;
+            font-weight: 400;
+        }
+
+        .context-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .context-tile {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .context-tile::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(108, 99, 255, 0.06), transparent 70%);
+            pointer-events: none;
+        }
+
+        .context-tile:active {
+            transform: scale(0.96);
+            border-color: var(--border-active);
+            background: var(--bg-elevated);
+        }
+
+        .context-tile .tile-icon {
+            font-size: 42px;
+            margin-bottom: 14px;
+            filter: grayscale(0);
+        }
+
+        .context-tile .tile-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.35;
+        }
+
+        .context-tile .tile-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .context-tile.coming-soon {
+            opacity: 0.5;
+        }
+
+        .context-tile.coming-soon .tile-label::after {
+            content: ' (soon)';
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 12px;
+        }
+
+        /* ========== CARD SWIPE SCREEN ========== */
+        .swipe-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-viewport {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            touch-action: pan-y;
+        }
+
+        .phrase-card {
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 40px 28px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            position: relative;
+            box-shadow: var(--shadow-card);
+            transition: border-color 0.3s;
+            will-change: transform;
+        }
+
+        .phrase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            opacity: 0.4;
+        }
+
+        .phrase-card.speaking {
+            border-color: var(--accent-success);
+        }
+
+        .card-category-tag {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            background: rgba(108, 99, 255, 0.08);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .phrase-text {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            line-height: 1.45;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 32px;
+            max-width: 520px;
+        }
+
+        .speak-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 18px 48px;
+            border-radius: 50px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .speak-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent);
+            pointer-events: none;
+        }
+
+        .speak-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 12px rgba(108, 99, 255, 0.5);
+        }
+
+        .speak-btn.speaking {
+            background: var(--accent-success);
+            box-shadow: 0 4px 20px rgba(78, 205, 196, 0.35);
+        }
+
+        /* Card navigation */
+        .card-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 8px 20px 4px;
+        }
+
+        .card-arrow {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .card-arrow:active {
+            transform: scale(0.9);
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .card-arrow:disabled {
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .card-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow: hidden;
+            max-width: 200px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            opacity: 0.4;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .dot.active {
+            background: var(--accent-primary);
+            opacity: 1;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .card-counter {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 4px 0 12px;
+            font-weight: 500;
+        }
+
+        /* ========== CATEGORY FILTER ========== */
+        .category-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            flex-shrink: 0;
+            scrollbar-width: none;
+        }
+
+        .category-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .cat-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            box-shadow: 0 2px 12px rgba(108, 99, 255, 0.3);
+        }
+
+        .cat-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ========== BOTTOM NAV ========== */
+        .bottom-nav {
+            display: flex;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            padding-bottom: var(--safe-bottom);
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            flex: 1;
+            padding: 14px 8px 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+
+        .nav-btn .nav-icon {
+            font-size: 22px;
+        }
+
+        .nav-btn.active {
+            color: var(--accent-primary);
+        }
+
+        .nav-btn:active {
+            color: var(--accent-glow);
+        }
+
+        /* ========== CUSTOM PHRASE MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 500;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-sheet {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 600px;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            padding: 24px 20px calc(var(--safe-bottom) + 20px);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--text-muted);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+            opacity: 0.5;
+        }
+
+        .modal-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .modal-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: var(--bg-deep);
+            border: 2px solid var(--border-subtle);
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 18px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: border-color 0.2s;
+            resize: none;
+            min-height: 80px;
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .modal-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .modal-category-select {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 16px 0 20px;
+        }
+
+        .modal-cat-opt {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-cat-opt.selected {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+        }
+
+        .modal-btn.cancel {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .modal-btn.save {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 16px rgba(108, 99, 255, 0.3);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ========== TOAST ========== */
+        .toast {
+            position: fixed;
+            top: calc(var(--safe-top) + 60px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+            border: 1px solid var(--border-active);
+            box-shadow: var(--shadow-card);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-color: rgba(78, 205, 196, 0.4);
+        }
+
+        /* ========== SWIPE HINTS ========== */
+        .swipe-hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 4px;
+            opacity: 0.7;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 480px) {
+            .phrase-text {
+                font-size: 24px;
+            }
+            .phrase-card {
+                padding: 32px 20px 28px;
+                min-height: 260px;
+            }
+            .speak-btn {
+                font-size: 16px;
+                padding: 16px 40px;
+            }
+            .context-tile {
+                min-height: 130px;
+                padding: 22px 16px;
+            }
+            .context-tile .tile-icon {
+                font-size: 36px;
+                margin-bottom: 10px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .phrase-text {
+                font-size: 34px;
+            }
+            .phrase-card {
+                min-height: 380px;
+                padding: 50px 40px 40px;
+            }
+        }
+
+        /* ========== INSTALL PROMPT ========== */
+        .install-banner {
+            display: none;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-active);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin: 0 20px 16px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .install-banner.visible {
+            display: flex;
+        }
+
+        .install-banner-text {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .install-banner-text strong {
+            color: var(--text-primary);
+        }
+
+        .install-dismiss {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <div class="header-left">
+        <button class="back-btn" id="backBtn" onclick="app.goHome()">‹</button>
+        <div class="header-title">Ryan's Voice</div>
+    </div>
+    <div class="context-badge" id="contextBadge">Home</div>
+</div>
+
+<!-- ===== HOME SCREEN ===== -->
+<div class="screen active" id="homeScreen">
+    <div class="home-scroll">
+        <div class="home-greeting">What are you doing?</div>
+        <div class="home-subtitle">Pick an activity to load your phrases</div>
+
+        <div id="installBanner" class="install-banner">
+            <div class="install-banner-text">
+                <strong>Add to Home Screen</strong> for a full-screen app experience.
+                Tap Share → Add to Home Screen.
+            </div>
+            <button class="install-dismiss" onclick="dismissInstall()">✕</button>
+        </div>
+
+        <div class="context-grid" id="contextGrid"></div>
+    </div>
+</div>
+
+<!-- ===== CARD SWIPE SCREEN ===== -->
+<div class="screen" id="swipeScreen">
+    <div class="swipe-area">
+        <div class="swipe-hint" id="swipeHint">← swipe or tap arrows →</div>
+
+        <div class="card-viewport" id="cardViewport">
+            <div class="phrase-card" id="phraseCard">
+                <div class="card-category-tag" id="cardCatTag">emotions</div>
+                <div class="phrase-text" id="phraseText">Loading...</div>
+                <button class="speak-btn" id="speakBtn" onclick="app.speak()">
+                    TAP TO SPEAK
+                </button>
+            </div>
+        </div>
+
+        <div class="card-nav">
+            <button class="card-arrow" id="prevArrow" onclick="app.prev()">‹</button>
+            <div class="card-dots" id="cardDots"></div>
+            <button class="card-arrow" id="nextArrow" onclick="app.next()">›</button>
+        </div>
+        <div class="card-counter" id="cardCounter"></div>
+    </div>
+
+    <div class="category-bar" id="categoryBar"></div>
+
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="app.goHome()">
+            <span class="nav-icon">🏠</span>
+            Home
+        </button>
+        <button class="nav-btn" onclick="app.openAddPhrase()">
+            <span class="nav-icon">＋</span>
+            Add Phrase
+        </button>
+        <button class="nav-btn coming-soon" onclick="showToast('Writing mode coming soon!')">
+            <span class="nav-icon">✍️</span>
+            Write
+        </button>
+    </div>
+</div>
+
+<!-- ===== ADD PHRASE MODAL ===== -->
+<div class="modal-overlay" id="addPhraseModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Add New Phrase</div>
+        <div class="modal-desc">Type a phrase in your words — it'll be added to the current context.</div>
+        <textarea class="modal-input" id="phraseInput" placeholder="Type your phrase here..." rows="2"></textarea>
+        <div class="modal-category-select" id="modalCategorySelect"></div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="app.closeAddPhrase()">Cancel</button>
+            <button class="modal-btn save" onclick="app.savePhrase()">Add Phrase</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CARD DATA — Ryan's phrases organized by context & category
+// ============================================================
+const CARD_DATA = {
+    story: {
+        label: "📚 Story / Pictures",
+        icon: "📚",
+        categories: ["emotions", "motivations", "social", "advice"],
+        cards: [
+            // Emotions
+            { text: "The character is jealous of the other one.", cat: "emotions" },
+            { text: "He looks really surprised.", cat: "emotions" },
+            { text: "He's in awe of someone.", cat: "emotions" },
+            { text: "She seems disappointed by the outcome.", cat: "emotions" },
+            { text: "He feels left out of the group.", cat: "emotions" },
+            { text: "She looks proud of her accomplishment.", cat: "emotions" },
+            { text: "He's feeling angry and frustrated.", cat: "emotions" },
+            { text: "She's overwhelmed by everything happening.", cat: "emotions" },
+            { text: "He looks genuinely content.", cat: "emotions" },
+            { text: "There's a sense of longing in that expression.", cat: "emotions" },
+            // Motivations
+            { text: "The big frog wants to be the boss.", cat: "motivations" },
+            { text: "The boy is looking for a playmate.", cat: "motivations" },
+            { text: "He thinks he's the boss of the animals.", cat: "motivations" },
+            { text: "She wants to be left alone.", cat: "motivations" },
+            { text: "He's trying to protect his territory.", cat: "motivations" },
+            { text: "She's only thinking of herself.", cat: "motivations" },
+            { text: "He wants to prove himself to the others.", cat: "motivations" },
+            { text: "She's searching for acceptance.", cat: "motivations" },
+            // Social
+            { text: "They realised he's being mean and selfish.", cat: "social" },
+            { text: "He's totally lacking self-control.", cat: "social" },
+            { text: "He's only thinking of himself.", cat: "social" },
+            { text: "They're having a conflict about sharing.", cat: "social" },
+            { text: "He's being a bully to the others.", cat: "social" },
+            { text: "The group dynamics are changing.", cat: "social" },
+            { text: "She's the peacemaker in this situation.", cat: "social" },
+            { text: "They're excluding someone on purpose.", cat: "social" },
+            // Advice
+            { text: "Stop biting your friend. Use your kind words.", cat: "advice" },
+            { text: "They need to learn cooperation.", cat: "advice" },
+            { text: "They should take turns.", cat: "advice" },
+            { text: "Everyone deserves respect.", cat: "advice" },
+            { text: "Try to understand their feelings.", cat: "advice" },
+            { text: "You need to share with others.", cat: "advice" },
+            { text: "Think about how that makes them feel.", cat: "advice" },
+            { text: "Actions have consequences.", cat: "advice" },
+        ]
+    },
+    conversation: {
+        label: "💬 Conversation",
+        icon: "💬",
+        categories: ["responses", "feelings", "requests", "social"],
+        cards: [
+            // Responses
+            { text: "Yes, I'd like to join.", cat: "responses" },
+            { text: "No thanks, maybe later.", cat: "responses" },
+            { text: "That's really interesting.", cat: "responses" },
+            { text: "I agree with that.", cat: "responses" },
+            { text: "I disagree with that point.", cat: "responses" },
+            { text: "I hadn't thought of it that way.", cat: "responses" },
+            { text: "That makes sense to me.", cat: "responses" },
+            { text: "I'm not sure about that.", cat: "responses" },
+            // Feelings
+            { text: "I'm feeling good today.", cat: "feelings" },
+            { text: "I'm a bit frustrated right now.", cat: "feelings" },
+            { text: "That made me happy.", cat: "feelings" },
+            { text: "I need a break right now.", cat: "feelings" },
+            { text: "I'm excited about that.", cat: "feelings" },
+            { text: "I'm thinking about it.", cat: "feelings" },
+            { text: "That's bothering me.", cat: "feelings" },
+            { text: "I'm feeling overwhelmed.", cat: "feelings" },
+            // Requests
+            { text: "Can you repeat that?", cat: "requests" },
+            { text: "Can we talk about something else?", cat: "requests" },
+            { text: "Give me a moment to think.", cat: "requests" },
+            { text: "Can you ask me a yes or no question?", cat: "requests" },
+            { text: "I want to say something important.", cat: "requests" },
+            { text: "Please wait, I'm composing my response.", cat: "requests" },
+            { text: "Can you show me what you mean?", cat: "requests" },
+            // Social
+            { text: "What are you talking about?", cat: "social" },
+            { text: "Tell me more about that.", cat: "social" },
+            { text: "How was your day?", cat: "social" },
+            { text: "That's a great idea.", cat: "social" },
+            { text: "I appreciate you saying that.", cat: "social" },
+            { text: "That was really funny.", cat: "social" },
+            { text: "I've been thinking about something.", cat: "social" },
+        ]
+    },
+    math: {
+        label: "🔢 Math",
+        icon: "🔢",
+        categories: ["observations", "operations", "geometry", "discussion"],
+        cards: [
+            // Observations
+            { text: "That theorem is fascinating.", cat: "observations" },
+            { text: "I see a pattern here.", cat: "observations" },
+            { text: "The proof shows that...", cat: "observations" },
+            { text: "That's an elegant solution.", cat: "observations" },
+            { text: "There's a relationship between these numbers.", cat: "observations" },
+            { text: "This reminds me of another problem.", cat: "observations" },
+            // Operations
+            { text: "Let me calculate that.", cat: "operations" },
+            { text: "The equation needs to balance.", cat: "operations" },
+            { text: "We need to find the common factor.", cat: "operations" },
+            { text: "The answer is a fraction.", cat: "operations" },
+            { text: "This requires a different approach.", cat: "operations" },
+            { text: "The variable represents an unknown quantity.", cat: "operations" },
+            // Geometry
+            { text: "That's geometrically impossible.", cat: "geometry" },
+            { text: "The angles need to add up to 180 degrees.", cat: "geometry" },
+            { text: "Look at the symmetry.", cat: "geometry" },
+            { text: "The shapes are congruent.", cat: "geometry" },
+            { text: "It's a transformation — a rotation.", cat: "geometry" },
+            // Discussion
+            { text: "Can you explain that step?", cat: "discussion" },
+            { text: "I think there's an error in the working.", cat: "discussion" },
+            { text: "Let me try a different method.", cat: "discussion" },
+            { text: "That logic is sound.", cat: "discussion" },
+            { text: "Can we go through it again?", cat: "discussion" },
+            { text: "I need to think about this more.", cat: "discussion" },
+        ]
+    },
+    gaming: {
+        label: "🎮 Gaming / Videos",
+        icon: "🎮",
+        categories: ["reactions", "requests", "commentary", "social"],
+        cards: [
+            // Reactions
+            { text: "That was an amazing play!", cat: "reactions" },
+            { text: "This game is really challenging.", cat: "reactions" },
+            { text: "I like how that works.", cat: "reactions" },
+            { text: "That was unexpected.", cat: "reactions" },
+            { text: "The graphics are incredible.", cat: "reactions" },
+            { text: "That was so satisfying.", cat: "reactions" },
+            { text: "I can't believe that just happened.", cat: "reactions" },
+            // Requests
+            { text: "I want to try that level.", cat: "requests" },
+            { text: "Can we watch something different?", cat: "requests" },
+            { text: "Let me have a turn.", cat: "requests" },
+            { text: "Can we restart?", cat: "requests" },
+            { text: "Skip this part.", cat: "requests" },
+            { text: "Turn up the volume.", cat: "requests" },
+            // Commentary
+            { text: "The strategy should be different.", cat: "commentary" },
+            { text: "They're making a mistake.", cat: "commentary" },
+            { text: "This character is overpowered.", cat: "commentary" },
+            { text: "The storyline is getting interesting.", cat: "commentary" },
+            { text: "That mechanic is broken.", cat: "commentary" },
+            { text: "The difficulty curve is too steep.", cat: "commentary" },
+            // Social
+            { text: "Do you want to play together?", cat: "social" },
+            { text: "Your turn next.", cat: "social" },
+            { text: "Great teamwork.", cat: "social" },
+            { text: "Let's try a different game.", cat: "social" },
+            { text: "I'm done playing for now.", cat: "social" },
+        ]
+    }
+};
+
+// ============================================================
+// CONTEXTS CONFIG
+// ============================================================
+const CONTEXTS = [
+    { id: "story",        icon: "📚", label: "Looking at story / pictures" },
+    { id: "conversation",  icon: "💬", label: "Having a conversation" },
+    { id: "math",          icon: "🔢", label: "Talking about math" },
+    { id: "gaming",        icon: "🎮", label: "Gaming / watching videos" },
+    { id: "writing",       icon: "✍️", label: "I want to write", comingSoon: true },
+    { id: "settings",      icon: "⚙️", label: "Settings", comingSoon: true },
+];
+
+// ============================================================
+// PERSISTENCE — localStorage for custom phrases & preferences
+// ============================================================
+const STORAGE_KEY = "ryans-aac-data";
+
+function loadCustomData() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : { customCards: {}, preferences: {} };
+    } catch { return { customCards: {}, preferences: {} }; }
+}
+
+function saveCustomData(data) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+function getCardsForContext(contextId) {
+    const base = CARD_DATA[contextId];
+    if (!base) return [];
+    const data = loadCustomData();
+    const custom = data.customCards[contextId] || [];
+    return [...base.cards, ...custom];
+}
+
+function addCustomCard(contextId, text, category) {
+    const data = loadCustomData();
+    if (!data.customCards[contextId]) data.customCards[contextId] = [];
+    data.customCards[contextId].push({ text, cat: category, custom: true });
+    saveCustomData(data);
+}
+
+// ============================================================
+// TEXT-TO-SPEECH — prefer male voice
+// ============================================================
+let voices = [];
+let preferredVoice = null;
+
+function initVoices() {
+    voices = speechSynthesis.getVoices();
+    // Prefer male English voices on iOS
+    const maleNames = ['Daniel', 'Gordon', 'James', 'Aaron', 'Arthur', 'Fred', 'Alex'];
+    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+
+    for (const name of maleNames) {
+        const found = englishVoices.find(v => v.name.includes(name));
+        if (found) { preferredVoice = found; return; }
+    }
+    // Fallback: any English voice
+    if (englishVoices.length > 0) preferredVoice = englishVoices[0];
+}
+
+if ('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = initVoices;
+    initVoices();
+}
+
+function speakText(text) {
+    if (!('speechSynthesis' in window)) return false;
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    if (preferredVoice) utt.voice = preferredVoice;
+    utt.rate = 0.92;
+    utt.pitch = 0.95;
+    utt.volume = 1;
+    utt.onend = () => {
+        document.getElementById('phraseCard').classList.remove('speaking');
+        document.getElementById('speakBtn').classList.remove('speaking');
+        document.getElementById('speakBtn').textContent = 'TAP TO SPEAK';
+    };
+    document.getElementById('phraseCard').classList.add('speaking');
+    document.getElementById('speakBtn').classList.add('speaking');
+    document.getElementById('speakBtn').textContent = '🔊 Speaking...';
+    speechSynthesis.speak(utt);
+    return true;
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer = null;
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// INSTALL BANNER
+// ============================================================
+function dismissInstall() {
+    document.getElementById('installBanner').classList.remove('visible');
+    try { localStorage.setItem('ryans-aac-install-dismissed', '1'); } catch {}
+}
+
+function checkInstallBanner() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const dismissed = localStorage.getItem('ryans-aac-install-dismissed');
+    if (!isStandalone && !dismissed) {
+        document.getElementById('installBanner').classList.add('visible');
+    }
+}
+
+// ============================================================
+// APP CONTROLLER
+// ============================================================
+const app = {
+    currentContext: null,
+    currentCategory: 'all',
+    cards: [],
+    filteredCards: [],
+    index: 0,
+    touchStartX: 0,
+    touchStartY: 0,
+    swiping: false,
+    modalCategory: null,
+
+    // ---------- INIT ----------
+    init() {
+        this.renderHome();
+        this.setupSwipe();
+        checkInstallBanner();
+    },
+
+    // ---------- HOME ----------
+    renderHome() {
+        const grid = document.getElementById('contextGrid');
+        grid.innerHTML = CONTEXTS.map(ctx => {
+            const count = CARD_DATA[ctx.id] ? CARD_DATA[ctx.id].cards.length : 0;
+            const customCount = (loadCustomData().customCards[ctx.id] || []).length;
+            const total = count + customCount;
+            return `
+                <div class="context-tile${ctx.comingSoon ? ' coming-soon' : ''}"
+                     onclick="${ctx.comingSoon ? `showToast('${ctx.label} — coming soon!')` : `app.loadContext('${ctx.id}')`}">
+                    <div class="tile-icon">${ctx.icon}</div>
+                    <div class="tile-label">${ctx.label}</div>
+                    ${total > 0 ? `<div class="tile-count">${total} phrases</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    },
+
+    // ---------- LOAD CONTEXT ----------
+    loadContext(id) {
+        this.currentContext = id;
+        this.currentCategory = 'all';
+        this.cards = getCardsForContext(id);
+        this.filteredCards = [...this.cards];
+        this.index = 0;
+
+        const ctx = CARD_DATA[id];
+        document.getElementById('contextBadge').textContent = ctx.label;
+        document.getElementById('backBtn').classList.add('visible');
+
+        this.renderCategories(ctx.categories);
+        this.showScreen('swipeScreen');
+        this.updateCard();
+    },
+
+    // ---------- CATEGORIES ----------
+    renderCategories(cats) {
+        const bar = document.getElementById('categoryBar');
+        const allBtn = `<button class="cat-btn active" data-cat="all" onclick="app.filterCat('all', this)">All</button>`;
+        const catBtns = cats.map(c =>
+            `<button class="cat-btn" data-cat="${c}" onclick="app.filterCat('${c}', this)">${c[0].toUpperCase() + c.slice(1)}</button>`
+        ).join('');
+        bar.innerHTML = allBtn + catBtns;
+    },
+
+    filterCat(cat, el) {
+        this.currentCategory = cat;
+        if (cat === 'all') {
+            this.filteredCards = [...this.cards];
+        } else {
+            this.filteredCards = this.cards.filter(c => c.cat === cat);
+        }
+        this.index = 0;
+
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        this.updateCard();
+    },
+
+    // ---------- CARD DISPLAY ----------
+    updateCard() {
+        const fc = this.filteredCards;
+        if (fc.length === 0) {
+            document.getElementById('phraseText').textContent = "No phrases in this category yet.";
+            document.getElementById('cardCatTag').textContent = "";
+            document.getElementById('cardCounter').textContent = "";
+            document.getElementById('cardDots').innerHTML = "";
+            document.getElementById('prevArrow').disabled = true;
+            document.getElementById('nextArrow').disabled = true;
+            return;
+        }
+        const card = fc[this.index];
+        document.getElementById('phraseText').textContent = card.text;
+        document.getElementById('cardCatTag').textContent = card.cat;
+        document.getElementById('cardCounter').textContent = `${this.index + 1} of ${fc.length}`;
+        document.getElementById('prevArrow').disabled = this.index === 0;
+        document.getElementById('nextArrow').disabled = this.index === fc.length - 1;
+        this.updateDots();
+    },
+
+    updateDots() {
+        const total = this.filteredCards.length;
+        const maxDots = Math.min(total, 9);
+        const dotsEl = document.getElementById('cardDots');
+        let html = '';
+        for (let i = 0; i < maxDots; i++) {
+            const active = i === Math.min(this.index, maxDots - 1) ? ' active' : '';
+            html += `<div class="dot${active}"></div>`;
+        }
+        dotsEl.innerHTML = html;
+    },
+
+    // ---------- NAVIGATION ----------
+    next() {
+        if (this.index < this.filteredCards.length - 1) {
+            this.index++;
+            this.animateCard('left');
+        }
+    },
+
+    prev() {
+        if (this.index > 0) {
+            this.index--;
+            this.animateCard('right');
+        }
+    },
+
+    animateCard(dir) {
+        const card = document.getElementById('phraseCard');
+        card.style.transition = 'transform 0.15s ease, opacity 0.15s ease';
+        card.style.transform = `translateX(${dir === 'left' ? '-30' : '30'}px)`;
+        card.style.opacity = '0.5';
+        setTimeout(() => {
+            this.updateCard();
+            card.style.transition = 'none';
+            card.style.transform = `translateX(${dir === 'left' ? '30' : '-30'}px)`;
+            card.style.opacity = '0.5';
+            requestAnimationFrame(() => {
+                card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+                card.style.transform = 'translateX(0)';
+                card.style.opacity = '1';
+            });
+        }, 150);
+    },
+
+    // ---------- SWIPE GESTURE ----------
+    setupSwipe() {
+        const vp = document.getElementById('cardViewport');
+
+        vp.addEventListener('touchstart', e => {
+            this.touchStartX = e.changedTouches[0].clientX;
+            this.touchStartY = e.changedTouches[0].clientY;
+            this.swiping = false;
+        }, { passive: true });
+
+        vp.addEventListener('touchmove', e => {
+            const dx = Math.abs(e.changedTouches[0].clientX - this.touchStartX);
+            const dy = Math.abs(e.changedTouches[0].clientY - this.touchStartY);
+            if (dx > 10 && dx > dy) this.swiping = true;
+        }, { passive: true });
+
+        vp.addEventListener('touchend', e => {
+            if (!this.swiping) return;
+            const dx = this.touchStartX - e.changedTouches[0].clientX;
+            const dy = Math.abs(this.touchStartY - e.changedTouches[0].clientY);
+            if (Math.abs(dx) > 40 && dy < 120) {
+                if (dx > 0) this.next();
+                else this.prev();
+            }
+        }, { passive: true });
+
+        // Also support keyboard arrows
+        document.addEventListener('keydown', e => {
+            if (this.currentContext) {
+                if (e.key === 'ArrowLeft') this.prev();
+                if (e.key === 'ArrowRight') this.next();
+            }
+        });
+    },
+
+    // ---------- SPEAK ----------
+    speak() {
+        const text = document.getElementById('phraseText').textContent;
+        if (text && text !== 'Loading...' && text !== 'No phrases in this category yet.') {
+            if (!speakText(text)) {
+                showToast('✓ ' + text);
+            }
+        }
+    },
+
+    // ---------- ADD PHRASE MODAL ----------
+    openAddPhrase() {
+        if (!this.currentContext) return;
+        const cats = CARD_DATA[this.currentContext].categories;
+        this.modalCategory = cats[0];
+
+        const selectEl = document.getElementById('modalCategorySelect');
+        selectEl.innerHTML = cats.map(c =>
+            `<button class="modal-cat-opt${c === this.modalCategory ? ' selected' : ''}"
+                     onclick="app.setModalCat('${c}', this)">${c[0].toUpperCase() + c.slice(1)}</button>`
+        ).join('');
+
+        document.getElementById('phraseInput').value = '';
+        document.getElementById('addPhraseModal').classList.add('open');
+        setTimeout(() => document.getElementById('phraseInput').focus(), 350);
+    },
+
+    setModalCat(cat, el) {
+        this.modalCategory = cat;
+        document.querySelectorAll('.modal-cat-opt').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+    },
+
+    closeAddPhrase() {
+        document.getElementById('addPhraseModal').classList.remove('open');
+    },
+
+    savePhrase() {
+        const text = document.getElementById('phraseInput').value.trim();
+        if (!text) {
+            showToast('Please type a phrase first');
+            return;
+        }
+        if (!this.currentContext || !this.modalCategory) return;
+
+        addCustomCard(this.currentContext, text, this.modalCategory);
+
+        // Refresh cards
+        this.cards = getCardsForContext(this.currentContext);
+        this.filterCat(this.currentCategory,
+            document.querySelector(`.cat-btn[data-cat="${this.currentCategory}"]`));
+
+        this.closeAddPhrase();
+        showToast('✓ Phrase added!', 'success');
+
+        // Update home tile counts
+        this.renderHome();
+    },
+
+    // ---------- SCREEN NAV ----------
+    showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    },
+
+    goHome() {
+        this.currentContext = null;
+        this.showScreen('homeScreen');
+        document.getElementById('contextBadge').textContent = 'Home';
+        document.getElementById('backBtn').classList.remove('visible');
+        speechSynthesis.cancel();
+    }
+};
+
+// Register Service Worker for offline support
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// Boot
+window.addEventListener('DOMContentLoaded', () => app.init());
+</script>
+</body>
+</html>

@@ -1313,50 +1313,204 @@ let detectedTopic = '';
 let detectedKeywords = [];
 let suggestedPhrases = [];
 
-// Keyword → topic mapping
-const TOPIC_KEYWORDS = {
-    story:   ['story','book','read','character','chapter','plot','page','author','picture','illustration','reading','wrote','writing','tale','narrative','hero','villain'],
-    math:    ['math','maths','number','calculate','equation','multiply','divide','add','subtract','algebra','geometry','fraction','decimal','percent','angle','triangle','formula','theorem','proof','pattern','symmetry'],
-    gaming:  ['game','play','video','level','score','player','team','controller','minecraft','roblox','fortnite','youtube','stream','watch','movie','show','episode','season','character','boss','quest'],
-    school:  ['school','class','teacher','homework','assignment','test','exam','project','grade','lesson','subject','science','history','english','student','study','learn','lecture'],
-    home:    ['dinner','breakfast','lunch','food','eat','cook','bed','sleep','shower','bath','clothes','clean','chore','family','mum','dad','brother','sister','parent'],
-    sensory: ['loud','noise','smell','bright','light','touch','hot','cold','hurt','pain','sick','headache','dizzy','tired','uncomfortable'],
+// ============================================================
+// CONTEXTUAL PREDICTION ENGINE V2
+// Topic Clouds × Question Type → Contextual Responses
+// ============================================================
+
+// TOPIC CLOUDS — semantic word groups that trigger topic detection
+const TOPIC_CLOUDS = {
+    // Daily Living
+    food:      ['eat','food','dinner','lunch','breakfast','snack','hungry','cook','meal','order','restaurant','menu','recipe','kitchen','fridge','pizza','pasta','chicken','rice','sandwich','noodle','soup','salad','fruit','dessert','cake','chocolate','cereal','toast','egg','cheese','bread','vegetable','meat','fish','curry','roast','bbq','takeaway','delicious','yummy','taste'],
+    drink:     ['drink','thirsty','water','juice','tea','coffee','milk','cup','bottle','hot chocolate','smoothie','lemonade','cordial','sip'],
+    hygiene:   ['shower','bath','teeth','brush','wash','clean','soap','towel','haircut','clothes','dressed','change','deodorant','shampoo','toilet','bathroom'],
+    transport: ['car','bus','train','drive','ride','walk','pick up','drop off','school bus','seat belt','window','trip','travel','uber','taxi','bike','scooter'],
+    shopping:  ['shop','buy','store','money','price','want','need','clothes','shoes','size','colour','try on','expensive','cheap','sale','pay','wallet','card'],
+    health:    ['doctor','dentist','medicine','pain','sick','appointment','hospital','check up','injection','needle','temperature','headache','stomach','throat','cough','flu','allergy','tablet','pill'],
+    sleep:     ['bed','sleep','tired','wake','dream','nightmare','pillow','blanket','alarm','morning','rest','nap','sleepy','yawn','stay up','bedtime'],
+    chores:    ['clean','tidy','room','dishes','laundry','rubbish','vacuum','help','job','task','done','finished','pack','unpack','organise','put away'],
+    weather:   ['rain','sun','hot','cold','warm','weather','umbrella','jacket','coat','wind','storm','cloudy','sunny'],
+
+    // Academic
+    math:      ['math','maths','number','calculate','equation','multiply','divide','add','subtract','algebra','geometry','fraction','decimal','percent','angle','triangle','formula','theorem','proof','pattern','symmetry','graph','function','variable','pi','infinity','statistics','probability','prime','factor','square root','derivative','integral','matrix','vector'],
+    english:   ['read','write','story','character','plot','essay','paragraph','grammar','vocabulary','sentence','author','book','chapter','poem','metaphor','analyse','theme','setting','narrative','spelling','punctuation','creative writing','describe','imagine','fiction','novel'],
+    science:   ['experiment','hypothesis','energy','force','chemical','biology','physics','atom','cell','evolution','gravity','temperature','molecule','reaction','lab','microscope','planet','solar','space','ecosystem'],
+    school:    ['school','class','teacher','homework','assignment','test','exam','project','grade','lesson','subject','student','study','learn','lecture','report','presentation','deadline','mark','result'],
+
+    // Entertainment & Social
+    gaming:    ['game','play','level','score','minecraft','roblox','fortnite','controller','online','multiplayer','boss','quest','character','mod','server','pvp','build','craft','win','lose','team','strategy'],
+    movies_tv: ['movie','film','show','watch','episode','season','actor','scene','funny','scary','boring','ending','series','netflix','disney','youtube','video','trailer','sequel','animation','cartoon','documentary','superhero','horror','comedy'],
+    music:     ['song','music','listen','singer','band','playlist','lyrics','concert','instrument','guitar','piano','drum','beat','melody','album','spotify'],
+    friends:   ['friend','mate','play','invite','party','birthday','sleepover','together','hang out','visit','came over','playground','recess','lunch break'],
+    pets:      ['dog','cat','pet','animal','feed','walk','vet','cute','puppy','kitten','bird','fish','hamster','rabbit'],
+    sports:    ['sport','soccer','football','cricket','swim','run','basketball','tennis','kick','catch','throw','race','goal','point','match','training','coach','practice'],
+
+    // Emotional/Sensory
+    sensory:   ['loud','noise','smell','bright','light','touch','hot','cold','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering'],
+    feelings:  ['happy','sad','angry','scared','worried','excited','nervous','calm','frustrated','proud','embarrassed','lonely','bored','confused','anxious','stressed','overwhelmed','grateful','hopeful','disappointed'],
 };
 
-// Question patterns → response type
+// QUESTION PATTERNS — detect what TYPE of response is needed
 const QUESTION_PATTERNS = [
-    {pattern:/\b(how are you|how's it going|how you going|how ya going)\b/i, type:'feelings'},
-    {pattern:/\b(what.{0,10}(food|eat|dinner|lunch|breakfast|snack|hungry|meal|order))\b/i, type:'food'},
-    {pattern:/\b(what.{0,10}(drink|thirsty|beverage|water|juice))\b/i, type:'drink'},
-    {pattern:/\b(what.{0,10}(want to do|like to do|activity|play))\b/i, type:'activity'},
-    {pattern:/\b(where.{0,10}(want to go|like to go|should we go|shall we go))\b/i, type:'place'},
+    // Greeting — highest priority
+    {pattern:/\b(how are you|how's it going|how you going|how ya going|how've you been)\b/i, type:'greeting'},
+    // Specific topic choices
+    {pattern:/\b(what.{0,15}(food|eat|dinner|lunch|breakfast|snack|hungry|meal|order|want for))\b/i, type:'food_choice'},
+    {pattern:/\b(what.{0,15}(drink|thirsty|beverage|water|juice))\b/i, type:'drink_choice'},
+    {pattern:/\b(what.{0,15}(want to do|like to do|activity|play|shall we))\b/i, type:'activity_choice'},
+    {pattern:/\b(where.{0,15}(want to go|like to go|should we go|shall we))\b/i, type:'place_choice'},
+    // General question types
     {pattern:/\b(what would you like|what do you want|what do you feel like|what would you prefer)\b/i, type:'choice'},
     {pattern:/\b(which one|which do you|pick one|choose)\b/i, type:'choice'},
+    {pattern:/\b(how was|how were|how did|how's your)\b/i, type:'review'},
+    {pattern:/\b(are you ready|have you finished|did you finish|did you do)\b/i, type:'status'},
+    {pattern:/\b(what do you think|what's your opinion|reckon)\b/i, type:'opinion'},
+    {pattern:/\b(did you like|do you like|enjoy|favourite)\b/i, type:'preference'},
     {pattern:/\b(do you want|would you like|wanna|want to)\b/i, type:'yesno'},
-    {pattern:/\b(what do you think|what's your opinion|reckon)\b/i, type:'opinions'},
-    {pattern:/\b(did you like|do you like|enjoy)\b/i, type:'preferences'},
-    {pattern:/\b(what happened|what's going on|what's up)\b/i, type:'narrative'},
     {pattern:/\b(can you|could you|will you|would you)\b/i, type:'yesno'},
-    {pattern:/\b(are you okay|you alright|you right)\b/i, type:'feelings'},
-    {pattern:/\b(where|when|who|which)\b/i, type:'specific'},
+    {pattern:/\b(what happened|what's going on|what's up|tell me about)\b/i, type:'narrative'},
+    {pattern:/\b(are you okay|you alright|you right)\b/i, type:'wellbeing'},
     {pattern:/\b(why)\b/i, type:'explanation'},
-    {pattern:/\b(is it|are they|was it|isn't|aren't|doesn't|don't)\b/i, type:'yesno'},
+    {pattern:/\b(where|when|who)\b/i, type:'specific'},
+    {pattern:/\b(is it|are they|was it|isn't|aren't|doesn't|don't|have you|has)\b/i, type:'yesno'},
 ];
 
-// Response type → category + boost phrases
-const RESPONSE_SUGGESTIONS = {
-    feelings: {boostCats:['feelings','greetings'], boostPhrases:["I'm feeling good today.","I'm a bit tired.","I'm a bit frustrated right now.","I'm feeling overwhelmed.","Not bad, thanks. You?"]},
-    yesno: {boostCats:['responses'], boostPhrases:["Yeah, for sure.","No thanks, maybe later.","Maybe, I'll think about it.","I'm not sure about that.","Sounds good."]},
-    opinions: {boostCats:['opinions'], boostPhrases:["I think that's a great idea.","I'm not convinced about that.","Fair enough.","I reckon that could work.","It depends on the situation."]},
-    preferences: {boostCats:['responses','feelings'], boostPhrases:["I like how that works.","That's not really my thing.","That was really funny.","That's a good point.","I hadn't thought of it that way."]},
-    narrative: {boostCats:['social','feelings'], boostPhrases:["I've been thinking about something.","Something happened at school.","I had a good day today.","Tell me more about that."]},
-    specific: {boostCats:['responses','requests'], boostPhrases:["I'm not sure about that.","Give me a moment to think.","Can you ask me a yes or no question?"]},
-    explanation: {boostCats:['opinions','responses'], boostPhrases:["It depends on the situation.","There's more to it than that.","I reckon so.","Can we look at it from a different angle?"]},
-    food: {boostCats:['choices','responses'], boostPhrases:["Pizza, please.","Pasta would be good.","Chicken and rice.","I'd like a sandwich.","Can I have noodles?","Something simple.","I'm not fussy, you choose.","I don't feel like eating.","Can I see the options?","Whatever everyone else is having.","Something warm.","Something light.","I'd like what I had last time."]},
-    drink: {boostCats:['choices','responses'], boostPhrases:["Water, please.","Juice would be good.","Hot chocolate, please.","Can I have milk?","I'm not thirsty.","Something cold.","Something warm."]},
-    activity: {boostCats:['choices','social'], boostPhrases:["I want to play a game.","Can we watch something?","I'd like to go outside.","Can I use the iPad?","I want to read.","Can we do something together?","I'd rather stay in.","Something fun.","Something quiet.","I want to draw.","Can we go to the park?"]},
-    place: {boostCats:['choices','social'], boostPhrases:["I'd like to go to the park.","Can we go to the shops?","I want to stay home.","Let's go outside.","Somewhere quiet.","Somewhere fun.","I don't mind, you pick."]},
-    choice: {boostCats:['choices','responses'], boostPhrases:["The first one.","The second one.","That one, please.","I don't mind.","You choose for me.","Can I see the options?","I need a moment to decide.","Neither, thanks.","Both sound good.","I'd like something different."]},
+// THE MATRIX: Topic × Question Type → Contextual Responses
+// When BOTH a topic and question type are detected, this gives precise responses
+const CONTEXTUAL_RESPONSES = {
+    // ---- FOOD ----
+    'food:food_choice':   ["Pizza, please.","Pasta would be good.","Chicken and rice.","I'd like a sandwich.","Can I have noodles?","Something warm.","Something simple.","I'm not fussy, you choose.","Whatever everyone else is having.","I'd like what I had last time.","Can I see what's available?","Soup sounds good.","Something with cheese."],
+    'food:choice':        ["Pizza, please.","Pasta would be good.","Something simple.","I'm not fussy, you choose.","Can I see the options?","I'd like what I had last time."],
+    'food:review':        ["It was delicious.","Not my favourite.","That was really good.","It was okay.","I didn't like the texture.","Can we have that again?","It needed more flavour.","Best meal ever."],
+    'food:yesno':         ["Yes please, I'm hungry.","No thanks, I'm full.","Maybe a little bit.","Just a small amount.","Not right now.","I could eat.","Yes, I'm starving."],
+    'food:preference':    ["I love pizza.","I'm not a fan of that.","That's my favourite.","I prefer something different.","I like it when it's warm.","The pasta was better."],
+    'food:status':        ["Yes, I've eaten.","No, not yet.","I'm still eating.","Almost finished.","I'm not hungry yet."],
+    'food:opinion':       ["I think we should order pizza.","Let's try something new.","I reckon the pasta is best.","The usual would be fine."],
+
+    // ---- DRINK ----
+    'drink:drink_choice': ["Water, please.","Juice would be good.","Hot chocolate, please.","Can I have milk?","Something cold.","Something warm.","Lemonade, please."],
+    'drink:choice':       ["Water, please.","Juice would be good.","Hot chocolate, please.","Something cold."],
+    'drink:yesno':        ["Yes please.","No, I'm not thirsty.","Maybe later.","Just water, thanks."],
+
+    // ---- HYGIENE ----
+    'hygiene:yesno':      ["Yes, I've done it.","Not yet, give me a minute.","I need help with that.","I'll do it now.","Already done."],
+    'hygiene:status':     ["Done.","Not yet.","I'm doing it now.","I need help.","Almost finished.","I forgot, I'll do it now."],
+    'hygiene:choice':     ["I want a shower.","Bath, please.","I'll brush my teeth first.","Can I wash my hands?"],
+
+    // ---- TRANSPORT ----
+    'transport:choice':   ["I'd like the window seat.","Front seat, please.","I want to walk.","Can we take the car?","I'd prefer the train."],
+    'transport:yesno':    ["Yes, I'm ready to go.","Not yet, give me a minute.","I need my bag first.","I don't want to go.","Can we leave soon?"],
+    'transport:status':   ["I'm ready.","Almost ready.","I need five more minutes.","I can't find my shoes.","I've got everything."],
+    'transport:preference':["I like the train better.","I prefer walking.","The car is more comfortable.","I don't like the bus, it's too loud."],
+
+    // ---- SHOPPING ----
+    'shopping:choice':    ["That one, please.","The blue one.","The bigger size.","I like this one better.","Can I try it on?","Neither, let's keep looking.","Both are good."],
+    'shopping:yesno':     ["Yes, I like it.","No, it doesn't fit.","Maybe, let me think.","It's too expensive.","Can we look somewhere else?"],
+    'shopping:opinion':   ["I think it looks good.","It's not really my style.","I prefer the other one.","The colour is nice.","It's too plain."],
+    'shopping:preference':["I like the blue one.","That style is cool.","I prefer something simpler.","I don't like how it feels."],
+
+    // ---- HEALTH ----
+    'health:yesno':       ["Yes, it hurts.","No, I'm feeling okay.","A little bit.","It's getting better.","It's getting worse."],
+    'health:specific':    ["My head hurts.","My stomach doesn't feel right.","My throat is sore.","I feel dizzy.","I feel nauseous."],
+    'health:status':      ["I took my medicine.","Not yet.","I'm feeling better.","Still not great.","The pain is a 6 out of 10."],
+    'health:wellbeing':   ["I'm not feeling well.","I'm okay, just tired.","Something doesn't feel right.","I think I need to rest.","Can I see a doctor?"],
+
+    // ---- SLEEP ----
+    'sleep:yesno':        ["Yes, I'm tired.","No, I'm not sleepy yet.","Can I stay up a bit longer?","I'm exhausted.","Five more minutes."],
+    'sleep:status':       ["I slept well.","I didn't sleep well.","I had a nightmare.","I woke up early.","I'm still tired."],
+    'sleep:review':       ["I slept really well.","It was a rough night.","I had weird dreams.","I couldn't fall asleep.","Best sleep in ages."],
+
+    // ---- CHORES ----
+    'chores:status':      ["Done.","Not yet.","I'm working on it.","I need help.","Almost finished.","I forgot.","Do I have to?"],
+    'chores:yesno':       ["Yes, it's done.","No, I haven't started.","I'll do it now.","Can I do it later?","I need help with this one."],
+
+    // ---- WEATHER ----
+    'weather:opinion':    ["I love this weather.","It's too hot.","It's too cold.","I hope it doesn't rain.","Perfect day to go outside."],
+
+    // ---- MATHS ----
+    'math:opinion':       ["That theorem is fascinating.","I see a pattern here.","That's an elegant solution.","This reminds me of another problem.","I think there's a simpler method.","The proof is beautiful."],
+    'math:review':        ["I enjoyed that problem.","It was challenging but fun.","I solved it a different way.","That was too easy.","I need to think about it more.","The patterns were interesting."],
+    'math:status':        ["I've finished the problems.","Still working on it.","I'm stuck on one.","I need a hint.","I found the answer.","Let me check my working."],
+    'math:explanation':   ["I found a pattern.","I used the formula.","I worked backwards.","Let me show my method.","I tried a different approach.","It uses the same principle as before."],
+    'math:preference':    ["Algebra is my favourite.","I love geometry.","Number theory is fascinating.","I prefer problem-solving.","Patterns are the best part."],
+    'math:choice':        ["Algebra, please.","I want to try geometry.","Something challenging.","Can we explore patterns?","Let me pick a harder one."],
+    'math:yesno':         ["Yes, I understand.","No, can you explain again?","I think so.","Almost, let me think.","Yes, that makes sense now."],
+
+    // ---- ENGLISH / STORIES ----
+    'english:opinion':    ["The character development is strong.","The plot twist was unexpected.","The writing style is engaging.","The metaphor works really well.","I think the theme is about belonging.","The author chose interesting words."],
+    'english:review':     ["I really enjoyed it.","The ending was surprising.","It made me think differently.","Some parts were confusing.","I want to read more by this author.","The best part was the dialogue."],
+    'english:preference': ["I prefer fiction.","I like stories with plot twists.","I enjoy descriptive writing.","Poetry is interesting.","I like characters with depth."],
+    'english:choice':     ["I want to read fiction.","Can we analyse this passage?","I'd like to write something.","Let's discuss the characters."],
+    'english:status':     ["I've finished reading it.","I'm halfway through.","I haven't started yet.","I need more time.","I've written the first paragraph."],
+
+    // ---- SCIENCE ----
+    'science:opinion':    ["That experiment was cool.","The hypothesis makes sense.","I think the results show a pattern.","The theory is fascinating.","I'd like to test something different."],
+    'science:review':     ["The experiment worked well.","The results were surprising.","I learned something new.","It was harder than I expected."],
+    'science:yesno':      ["Yes, I understand the concept.","No, can you explain that again?","I think I get it.","That makes sense."],
+
+    // ---- SCHOOL ----
+    'school:status':      ["I've done my homework.","Not yet.","Almost finished.","I need help with it.","I forgot about it.","It's due tomorrow.","I handed it in."],
+    'school:review':      ["It was a good day.","School was okay.","I had a hard day.","The lesson was interesting.","I learned something cool.","It was boring today.","Lunchtime was fun."],
+    'school:opinion':     ["I think the teacher explained it well.","The assignment is interesting.","I'm not sure about the topic.","I'd rather work on maths.","The project sounds fun."],
+    'school:yesno':       ["Yes, we have homework.","No, nothing due.","I think so.","I'm not sure, let me check.","Yes, I'm ready for the test.","No, I need more study time."],
+    'school:preference':  ["Maths is my best subject.","I enjoy science class.","English is getting more interesting.","I prefer working alone.","Group work can be fun."],
+
+    // ---- GAMING ----
+    'gaming:review':      ["That was an amazing play!","I almost beat the level.","The game is really challenging.","I discovered something new.","That boss was so hard.","My best score ever."],
+    'gaming:choice':      ["Minecraft.","Roblox.","Something multiplayer.","I want to try something new.","Let's play what we played last time.","Can I pick?"],
+    'gaming:opinion':     ["This game has great strategy.","The graphics are impressive.","The storyline is interesting.","It's too repetitive.","The puzzle design is clever."],
+    'gaming:yesno':       ["Yeah, let's play!","Not right now.","Maybe after dinner.","Can I finish this level first?","One more game?","I'm done for now."],
+    'gaming:preference':  ["I like strategy games best.","Building games are my favourite.","I prefer single player.","Multiplayer is more fun."],
+
+    // ---- MOVIES/TV ----
+    'movies_tv:review':   ["It was brilliant.","A bit boring.","The ending was unexpected.","Really funny.","Too scary for me.","I want to watch the next one.","The special effects were amazing."],
+    'movies_tv:choice':   ["Something funny.","Can we watch a documentary?","I want to watch that new one.","Something we haven't seen.","Put on what you want.","Can I pick?"],
+    'movies_tv:opinion':  ["The acting was really good.","The story was predictable.","I liked the main character.","The cinematography was beautiful.","It made me think."],
+    'movies_tv:yesno':    ["Yeah, let's watch something.","Not right now.","Can we finish the one from yesterday?","Is it appropriate?","I'd rather play a game."],
+    'movies_tv:preference':["I like comedies.","Documentaries are fascinating.","Animation is underrated.","I prefer films to shows.","Sci-fi is the best genre."],
+
+    // ---- FRIENDS ----
+    'friends:yesno':      ["Yeah, sounds fun!","I'm not sure about that.","Will it be loud?","Who else is going?","Can I think about it?","Maybe another time.","Yes, I'd love to!"],
+    'friends:review':     ["It was great seeing everyone.","I had fun.","I got a bit overwhelmed.","I wish we could do it more.","It was nice but tiring.","Best time ever."],
+    'friends:choice':     ["Can I invite a few friends?","Just close friends.","I'd rather one-on-one.","Everyone can come."],
+    'friends:opinion':    ["They're really nice.","I feel comfortable around them.","I think they understand me.","Sometimes it's hard to keep up."],
+
+    // ---- SPORTS ----
+    'sports:review':      ["That was a great game.","I played well today.","We won!","We lost, but it was fun.","I'm tired from training.","I improved my technique."],
+    'sports:yesno':       ["Yeah, I want to play.","Not today, I'm tired.","Can I watch instead?","Let me warm up first."],
+    'sports:preference':  ["I like swimming best.","Cricket is fun.","I prefer watching to playing.","Individual sports suit me better."],
+
+    // ---- PETS ----
+    'pets:yesno':         ["Yes, I fed them.","No, not yet.","Can I walk the dog?","I want to play with them."],
+    'pets:review':        ["They were so cute today.","The dog was really energetic.","They seem happy.","I think they need food."],
+
+    // ---- FEELINGS (catch-all for emotional questions) ----
+    'feelings:wellbeing': ["I'm doing okay.","Not great today.","I'm feeling a bit off.","I'm happy right now.","I need some space.","I'm working through something."],
+    'feelings:review':    ["Today was good.","It's been a tough day.","I'm feeling better now.","Mixed feelings.","Better than yesterday."],
+    'feelings:explanation':["I'm not sure why I feel this way.","Something happened earlier.","It's been building up.","I think I'm just tired.","It's hard to explain."],
+
+    // ---- SENSORY ----
+    'sensory:wellbeing':  ["The noise is too much.","It's too bright in here.","I need my headphones.","Can we go somewhere quieter?","I need a break from this."],
+    'sensory:yesno':      ["Yes, it's bothering me.","No, I'm okay.","A little bit.","It's getting worse.","I can manage."],
+};
+
+// GENERIC RESPONSES — used when topic detected but no matrix match
+const GENERIC_RESPONSES = {
+    greeting:   ["I'm feeling good today.","I'm a bit tired.","Not bad, thanks. You?","Yeah, going alright.","I'm okay.","Can't complain.","I'm a bit frustrated right now."],
+    yesno:      ["Yeah, for sure.","No thanks, maybe later.","Maybe, I'll think about it.","I'm not sure about that.","Sounds good.","Absolutely.","I don't think so.","Not right now."],
+    opinion:    ["I think that's a great idea.","I'm not convinced about that.","Fair enough.","I reckon that could work.","It depends on the situation.","I need to think about it.","There's more to it than that."],
+    preference: ["I like how that works.","That's not really my thing.","That's a good point.","I hadn't thought of it that way.","I prefer something else."],
+    review:     ["It was good.","Not bad.","I really enjoyed it.","It could have been better.","It was okay.","One of the best."],
+    narrative:  ["I've been thinking about something.","Something happened.","I had a good day today.","Tell me more about that.","It's a long story."],
+    wellbeing:  ["I'm okay.","Not great.","I'm managing.","Thanks for asking.","I could be better.","I'm doing well."],
+    status:     ["Done.","Not yet.","Working on it.","Almost.","I need help.","Give me a minute."],
+    specific:   ["I'm not sure.","Give me a moment to think.","Can you ask me a yes or no question?","I'd need to check."],
+    explanation:["It depends on the situation.","There's more to it than that.","I reckon so.","Can we look at it from a different angle?","It's hard to explain.","Let me think about how to say this."],
+    choice:     ["The first one.","The second one.","That one, please.","I don't mind.","You choose for me.","Can I see the options?","I need a moment to decide."],
+    food_choice:["Pizza, please.","Pasta would be good.","Something simple.","I'm not fussy, you choose.","Can I see what's available?"],
+    drink_choice:["Water, please.","Juice would be good.","Hot chocolate, please.","Something cold."],
+    activity_choice:["I want to play a game.","Can we watch something?","Can I use the iPad?","Something fun.","I'd rather stay in."],
+    place_choice:["I'd like to go to the park.","I want to stay home.","Somewhere quiet.","I don't mind, you pick."],
 };
 
 function initSpeechRecognition() {
@@ -1456,52 +1610,99 @@ function analyseAndSuggest(text, isFinal) {
     if (!app.currentContext) return;
     const lower = text.toLowerCase();
 
-    // 1. Extract keywords
+    // 1. Detect TOPICS from topic clouds (can match multiple)
     detectedKeywords = [];
-    for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
-        for (const kw of keywords) {
-            if (lower.includes(kw)) {
-                detectedKeywords.push({word:kw, topic});
+    const topicScores = {};
+    for (const [topic, words] of Object.entries(TOPIC_CLOUDS)) {
+        for (const w of words) {
+            if (lower.includes(w)) {
+                detectedKeywords.push({word:w, topic});
+                topicScores[topic] = (topicScores[topic]||0) + 1;
             }
         }
     }
 
-    // 2. Detect topic
-    const topicCounts = {};
-    detectedKeywords.forEach(k => { topicCounts[k.topic] = (topicCounts[k.topic]||0) + 1; });
-    const topTopic = Object.entries(topicCounts).sort((a,b) => b[1]-a[1])[0];
-    if (topTopic) detectedTopic = topTopic[0];
+    // Get top 2 topics (conversations often span multiple)
+    const rankedTopics = Object.entries(topicScores).sort((a,b) => b[1]-a[1]);
+    const primaryTopic = rankedTopics[0]?.[0] || null;
+    const secondaryTopic = rankedTopics[1]?.[0] || null;
+    if (primaryTopic) detectedTopic = primaryTopic;
 
-    // 3. Detect question type
+    // 2. Detect QUESTION TYPE
     let questionType = null;
     for (const q of QUESTION_PATTERNS) {
         if (q.pattern.test(lower)) { questionType = q.type; break; }
     }
 
-    // 4. Score cards — use current filteredCards or fall back to full card list
-    const allCards = (app.cards && app.cards.length) ? app.cards : getCardsForContext(app.currentContext);
-    const keywordWords = detectedKeywords.map(k => k.word);
+    // 3. Build contextual suggestions using Topic × Question matrix
     const scores = [];
+    const alreadyAdded = new Set();
 
+    function addResponses(responses, baseScore, source) {
+        responses.forEach(text => {
+            if (alreadyAdded.has(text)) return;
+            alreadyAdded.add(text);
+            // Check if card exists in current context
+            const existing = (app.cards || []).find(c => c.text === text);
+            if (existing) {
+                scores.push({card:existing, score:baseScore, source});
+            } else {
+                // Check all contexts
+                let found = null;
+                for (const ctxId of Object.keys(CARD_DATA)) {
+                    const match = CARD_DATA[ctxId].cards.find(c => c.text === text);
+                    if (match) { found = {card:match, ctx:ctxId}; break; }
+                }
+                if (found) {
+                    scores.push({card:found.card, score:baseScore, crossContext:found.ctx, source});
+                } else {
+                    scores.push({card:{text, cat:'choices'}, score:baseScore, virtual:true, source});
+                }
+            }
+        });
+    }
+
+    // Priority 1: EXACT matrix match (topic + question type) — most contextual
+    if (primaryTopic && questionType) {
+        const matrixKey = primaryTopic + ':' + questionType;
+        if (CONTEXTUAL_RESPONSES[matrixKey]) {
+            addResponses(CONTEXTUAL_RESPONSES[matrixKey], 15, '🎯 contextual');
+        }
+        // Also try secondary topic
+        if (secondaryTopic) {
+            const matrixKey2 = secondaryTopic + ':' + questionType;
+            if (CONTEXTUAL_RESPONSES[matrixKey2]) {
+                addResponses(CONTEXTUAL_RESPONSES[matrixKey2], 10, '🎯 related');
+            }
+        }
+    }
+
+    // Priority 2: Topic-only match (any question type for this topic)
+    if (primaryTopic && scores.length < 4) {
+        for (const [key, responses] of Object.entries(CONTEXTUAL_RESPONSES)) {
+            if (key.startsWith(primaryTopic + ':') && responses.length) {
+                addResponses(responses.slice(0,3), 8, '📂 topic');
+            }
+        }
+    }
+
+    // Priority 3: Question-type generic responses
+    if (questionType && scores.length < 4) {
+        if (GENERIC_RESPONSES[questionType]) {
+            addResponses(GENERIC_RESPONSES[questionType], 6, '❓ type');
+        }
+    }
+
+    // Priority 4: Score existing cards by keyword match
+    const keywordWords = detectedKeywords.map(k => k.word);
+    const allCards = (app.cards && app.cards.length) ? app.cards : getCardsForContext(app.currentContext);
     allCards.forEach(card => {
+        if (alreadyAdded.has(card.text)) return;
         let score = 0;
         const cardLower = card.text.toLowerCase();
-
-        // Keyword match +3 each
         for (const kw of keywordWords) {
             if (cardLower.includes(kw)) score += 3;
         }
-
-        // Question type → matching category +5, exact boost phrase +8
-        if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
-            const rs = RESPONSE_SUGGESTIONS[questionType];
-            if (rs.boostCats.includes(card.cat)) score += 5;
-            if (rs.boostPhrases.includes(card.text)) score += 8;
-        }
-
-        // Topic context match +2
-        if (detectedTopic === app.currentContext) score += 2;
-
         // Phase 2D sequence bonus
         if (lastSpokenKey) {
             try {
@@ -1510,59 +1711,30 @@ function analyseAndSuggest(text, isFinal) {
                 if (seq) score += seq * 2;
             } catch {}
         }
-
-        if (score > 0) scores.push({card, score});
+        if (score > 0) {
+            alreadyAdded.add(card.text);
+            scores.push({card, score});
+        }
     });
 
-    // Cross-context suggestions
-    if (detectedTopic && detectedTopic !== app.currentContext && CARD_DATA[detectedTopic]) {
-        CARD_DATA[detectedTopic].cards.slice(0,8).forEach(card => {
+    // Priority 5: Cross-context cards for detected topic
+    if (primaryTopic && primaryTopic !== app.currentContext && CARD_DATA[primaryTopic]) {
+        CARD_DATA[primaryTopic].cards.slice(0,8).forEach(card => {
+            if (alreadyAdded.has(card.text)) return;
             let score = 2;
             const cl = card.text.toLowerCase();
             for (const kw of keywordWords) { if (cl.includes(kw)) score += 3; }
-            if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
-                const rs = RESPONSE_SUGGESTIONS[questionType];
-                if (rs.boostCats.includes(card.cat)) score += 4;
-                if (rs.boostPhrases.includes(card.text)) score += 6;
-            }
-            if (score > 2) scores.push({card, score, crossContext:detectedTopic});
-        });
-    }
-
-    // Fallback: question detected — ALWAYS inject boost phrases as suggestions
-    // even if they're not in the current context's card deck
-    if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
-        const rs = RESPONSE_SUGGESTIONS[questionType];
-        const alreadySuggested = new Set(scores.map(s => s.card.text));
-        rs.boostPhrases.forEach(text => {
-            if (!alreadySuggested.has(text)) {
-                // Check if card exists in current context
-                const existingCard = allCards.find(c => c.text === text);
-                if (existingCard) {
-                    scores.push({card:existingCard, score:7});
-                } else {
-                    // Check conversation context (most likely home for everyday phrases)
-                    let found = null;
-                    for (const ctxId of Object.keys(CARD_DATA)) {
-                        if (ctxId === app.currentContext) continue;
-                        const match = CARD_DATA[ctxId].cards.find(c => c.text === text);
-                        if (match) { found = {card:match, ctx:ctxId}; break; }
-                    }
-                    if (found) {
-                        scores.push({card:found.card, score:7, crossContext:found.ctx});
-                    } else {
-                        // Phrase exists only in boost list — create a virtual card
-                        scores.push({card:{text, cat:'choices'}, score:7, virtual:true});
-                    }
-                }
+            if (score > 2) {
+                alreadyAdded.add(card.text);
+                scores.push({card, score, crossContext:primaryTopic});
             }
         });
     }
 
     scores.sort((a,b) => b.score - a.score);
-    suggestedPhrases = scores.slice(0,6);
+    suggestedPhrases = scores.slice(0,8); // Show up to 8 for more options
 
-    // 5. Update UI
+    // 4. Update UI
     updateTopicDisplay();
     updateSuggestedStrip();
     if (isFinal && suggestedPhrases.length > 0) {

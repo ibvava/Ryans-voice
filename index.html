@@ -1365,6 +1365,37 @@ function initSpeechRecognition() {
     return rec;
 }
 
+function startListening() {
+    if (!recognition) recognition = initSpeechRecognition();
+    if (!recognition) {
+        showToast('Speech recognition not available on this device');
+        return;
+    }
+    try {
+        recognition.start();
+        isListening = true;
+        document.getElementById('listenToggle').classList.add('active');
+        document.getElementById('listenLabel').textContent = 'Listening...';
+        document.getElementById('listenTopic').textContent = '🎤 Hearing conversation...';
+        document.getElementById('listenTopic').classList.remove('has-topic');
+    } catch(e) {
+        if (e.name === 'InvalidStateError') {
+            isListening = true;
+        }
+    }
+}
+
+function stopListening() {
+    isListening = false;
+    if (recognition) {
+        try { recognition.stop(); } catch(e) {}
+    }
+    document.getElementById('listenToggle').classList.remove('active');
+    document.getElementById('listenLabel').textContent = 'Listen';
+    document.getElementById('listenTopic').textContent = 'Tap Listen to hear the conversation';
+    document.getElementById('listenTopic').classList.remove('has-topic');
+}
+
 function analyseAndSuggest(text, isFinal) {
     if (!app.currentContext) return;
     const lower = text.toLowerCase();

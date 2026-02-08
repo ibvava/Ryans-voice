@@ -1312,7 +1312,8 @@ function initSpeechRecognition() {
     rec.lang = 'en-AU';
     rec.maxAlternatives = 1;
 
-    let interimDebounce = null;
+    let debounceTimer = null;
+    let lastProcessedText = '';
 
     rec.onresult = (event) => {
         let finalTranscript = '';
@@ -1323,29 +1324,34 @@ function initSpeechRecognition() {
             else interimTranscript += t;
         }
 
-        // FAST PATH: Process interim results immediately for early predictions
-        if (interimTranscript && !finalTranscript) {
-            clearTimeout(interimDebounce);
-            interimDebounce = setTimeout(() => {
-                processConversationFast(interimTranscript.trim(), false);
-            }, 150); // Debounce rapid interim updates to 150ms
-        }
-
-        if (finalTranscript) {
-            clearTimeout(interimDebounce);
-            conversationTranscript.push({text:finalTranscript.trim(), time:Date.now()});
-            if (conversationTranscript.length > 20) conversationTranscript = conversationTranscript.slice(-20);
-            processConversationFast(finalTranscript.trim(), true);
-        }
-
-        // Update transcript display (lightweight — just text)
+        // Show what's being heard immediately
         const recent = conversationTranscript.slice(-3).map(u => u.text).join(' … ');
         updateTranscriptDisplay(recent + (interimTranscript ? ' ' + interimTranscript : ''));
+
+        // Process FINAL results immediately — full analysis + reorder
+        if (finalTranscript) {
+            clearTimeout(debounceTimer);
+            const text = finalTranscript.trim();
+            conversationTranscript.push({text, time:Date.now()});
+            if (conversationTranscript.length > 20) conversationTranscript = conversationTranscript.slice(-20);
+            lastProcessedText = text;
+            analyseAndSuggest(text, true);
+        }
+        // Process INTERIM results with debounce — suggestions only, no reorder
+        else if (interimTranscript) {
+            const text = interimTranscript.trim();
+            if (text.length > 3 && text !== lastProcessedText) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    lastProcessedText = text;
+                    analyseAndSuggest(text, false);
+                }, 200);
+            }
+        }
     };
 
     rec.onerror = (event) => {
         if (event.error === 'no-speech' || event.error === 'aborted') return;
-        console.log('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
             showToast('Microphone permission needed. Check Settings → Safari.');
             stopListening();
@@ -1359,184 +1365,112 @@ function initSpeechRecognition() {
     return rec;
 }
 
-// ---- PRE-BUILT INDEXES (created once when context loads) ----
-let _kwIndex = null;       // Set of all topic keywords for fast lookup
-let _kwMap = null;         // word → topic mapping
-let _cardIndex = null;     // Pre-processed card data for fast scoring
-let _cardTextsLower = null;// Lowercased card texts for keyword matching
-let _cachedCards = null;   // Cached card list (avoids re-sorting on every speech event)
-let _indexContext = null;   // Which context the index was built for
+function analyseAndSuggest(text, isFinal) {
+    if (!app.currentContext) return;
+    const lower = text.toLowerCase();
 
-function buildPredictionIndex(contextId) {
-    if (_indexContext === contextId && _cardIndex) return; // Already built
-    _indexContext = contextId;
-
-    // Build keyword lookup — flat Set for O(1) checking
-    _kwIndex = new Set();
-    _kwMap = {};
+    // 1. Extract keywords
+    detectedKeywords = [];
     for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
         for (const kw of keywords) {
-            _kwIndex.add(kw);
-            _kwMap[kw] = topic;
-        }
-    }
-
-    // Build card index — pre-lowercase, pre-map categories
-    _cachedCards = getCardsForContext(contextId);
-    _cardIndex = _cachedCards.map((card, i) => ({
-        card,
-        index: i,
-        textLower: card.text.toLowerCase(),
-        cat: card.cat,
-    }));
-    _cardTextsLower = _cardIndex.map(c => c.textLower);
-
-    // Pre-build boost phrase lookup for instant matching
-    _boostPhraseSet = {};
-    for (const [type, rs] of Object.entries(RESPONSE_SUGGESTIONS)) {
-        rs.boostPhrases.forEach(p => { _boostPhraseSet[p] = type; });
-    }
-    // Pre-build category → response type mapping
-    _catBoostMap = {};
-    for (const [type, rs] of Object.entries(RESPONSE_SUGGESTIONS)) {
-        rs.boostCats.forEach(cat => {
-            if (!_catBoostMap[cat]) _catBoostMap[cat] = [];
-            _catBoostMap[cat].push(type);
-        });
-    }
-}
-
-let _boostPhraseSet = {};
-let _catBoostMap = {};
-
-// ---- FAST CONVERSATION PROCESSING ----
-function processConversationFast(text, isFinal) {
-    if (!app.currentContext) return;
-    buildPredictionIndex(app.currentContext);
-
-    const lower = text.toLowerCase();
-    const words = lower.split(/\s+/);
-
-    // 1. Fast keyword extraction — check each word against pre-built Set
-    detectedKeywords = [];
-    const matchedTopics = {};
-    for (const w of words) {
-        // Check exact word and also 2-word phrases
-        if (_kwIndex.has(w)) {
-            const topic = _kwMap[w];
-            detectedKeywords.push({word:w, topic});
-            matchedTopics[topic] = (matchedTopics[topic]||0) + 1;
-        }
-    }
-    // Also check multi-word keywords (e.g. "self control")
-    for (const kw of _kwIndex) {
-        if (kw.includes(' ') && lower.includes(kw)) {
-            const topic = _kwMap[kw];
-            if (!detectedKeywords.find(d => d.word === kw)) {
+            if (lower.includes(kw)) {
                 detectedKeywords.push({word:kw, topic});
-                matchedTopics[topic] = (matchedTopics[topic]||0) + 1;
             }
         }
     }
 
-    // 2. Topic detection
-    const topTopic = Object.entries(matchedTopics).sort((a,b) => b[1]-a[1])[0];
+    // 2. Detect topic
+    const topicCounts = {};
+    detectedKeywords.forEach(k => { topicCounts[k.topic] = (topicCounts[k.topic]||0) + 1; });
+    const topTopic = Object.entries(topicCounts).sort((a,b) => b[1]-a[1])[0];
     if (topTopic) detectedTopic = topTopic[0];
 
-    // 3. Fast question detection — test patterns in priority order
+    // 3. Detect question type
     let questionType = null;
     for (const q of QUESTION_PATTERNS) {
         if (q.pattern.test(lower)) { questionType = q.type; break; }
     }
 
-    // 4. Score phrases using pre-built index (FAST — no re-sorting, no function calls)
-    scorePhrasesIndexed(detectedKeywords, questionType, detectedTopic);
-
-    // 5. Update UI — use requestAnimationFrame for smooth rendering
-    requestAnimationFrame(() => {
-        updateSuggestedStrip();
-        updateTopicDisplay();
-        // Only reorder main cards on FINAL results (avoid jarring mid-word reorders)
-        if (isFinal && suggestedPhrases.length > 0 && app.currentContext) {
-            reorderCardsFromSuggestions();
-        }
-    });
-}
-
-function scorePhrasesIndexed(keywords, questionType, topic) {
-    if (!_cardIndex) return;
+    // 4. Score cards — use current filteredCards or fall back to full card list
+    const allCards = (app.cards && app.cards.length) ? app.cards : getCardsForContext(app.currentContext);
+    const keywordWords = detectedKeywords.map(k => k.word);
     const scores = [];
-    const keywordWords = keywords.map(k => k.word);
 
-    for (let i = 0; i < _cardIndex.length; i++) {
-        const ci = _cardIndex[i];
+    allCards.forEach(card => {
         let score = 0;
+        const cardLower = card.text.toLowerCase();
 
-        // Keyword match — fast string search on pre-lowercased text
+        // Keyword match +3 each
         for (const kw of keywordWords) {
-            if (ci.textLower.includes(kw)) score += 3;
+            if (cardLower.includes(kw)) score += 3;
         }
 
-        // Question type match — use pre-built lookup
-        if (questionType && _catBoostMap[ci.cat]) {
-            if (_catBoostMap[ci.cat].includes(questionType)) score += 5;
+        // Question type → matching category +5, exact boost phrase +8
+        if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
+            const rs = RESPONSE_SUGGESTIONS[questionType];
+            if (rs.boostCats.includes(card.cat)) score += 5;
+            if (rs.boostPhrases.includes(card.text)) score += 8;
         }
-        // Exact boost phrase match
-        if (questionType && _boostPhraseSet[ci.card.text] === questionType) score += 8;
 
-        // Topic match bonus
-        if (topic === app.currentContext) score += 2;
+        // Topic context match +2
+        if (detectedTopic === app.currentContext) score += 2;
 
-        // Phase 2D adaptive bonus — add sequence + time-of-day signals
+        // Phase 2D sequence bonus
         if (lastSpokenKey) {
-            const d = _cachedData || loadData();
-            if (d.sequences[lastSpokenKey]?.[ci.card.text]) {
-                score += d.sequences[lastSpokenKey][ci.card.text] * 2;
-            }
+            try {
+                const d = loadData();
+                const seq = d.sequences?.[lastSpokenKey]?.[card.text];
+                if (seq) score += seq * 2;
+            } catch {}
         }
 
-        if (score > 0) scores.push({card:ci.card, score, index:ci.index});
-    }
+        if (score > 0) scores.push({card, score});
+    });
 
-    // Cross-context suggestions (only check top 5 from matching topic)
-    if (topic && topic !== app.currentContext && CARD_DATA[topic]) {
-        const crossCards = CARD_DATA[topic].cards;
-        const limit = Math.min(crossCards.length, 5);
-        for (let i = 0; i < limit; i++) {
-            const card = crossCards[i];
+    // Cross-context suggestions
+    if (detectedTopic && detectedTopic !== app.currentContext && CARD_DATA[detectedTopic]) {
+        CARD_DATA[detectedTopic].cards.slice(0,8).forEach(card => {
             let score = 2;
             const cl = card.text.toLowerCase();
             for (const kw of keywordWords) { if (cl.includes(kw)) score += 3; }
-            if (questionType && _catBoostMap[card.cat]?.includes(questionType)) score += 4;
-            if (score > 2) scores.push({card, score, crossContext:topic});
-        }
+            if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
+                const rs = RESPONSE_SUGGESTIONS[questionType];
+                if (rs.boostCats.includes(card.cat)) score += 4;
+                if (rs.boostPhrases.includes(card.text)) score += 6;
+            }
+            if (score > 2) scores.push({card, score, crossContext:detectedTopic});
+        });
     }
 
-    // Question-type fallback
+    // Fallback: question detected but no keyword matches
     if (scores.length === 0 && questionType && RESPONSE_SUGGESTIONS[questionType]) {
         RESPONSE_SUGGESTIONS[questionType].boostPhrases.forEach(text => {
-            const ci = _cardIndex.find(c => c.card.text === text);
-            if (ci) scores.push({card:ci.card, score:5});
+            const card = allCards.find(c => c.text === text);
+            if (card) scores.push({card, score:5});
         });
     }
 
     scores.sort((a,b) => b.score - a.score);
     suggestedPhrases = scores.slice(0,6);
-}
 
-// ---- CACHED DATA for scoring (avoid hitting localStorage on every speech event) ----
-let _cachedData = null;
-let _cachedDataTime = 0;
-function getCachedData() {
-    const now = Date.now();
-    if (!_cachedData || now - _cachedDataTime > 5000) { // Refresh cache every 5 seconds
-        _cachedData = loadData();
-        _cachedDataTime = now;
+    // 5. Update UI
+    updateTopicDisplay();
+    updateSuggestedStrip();
+    if (isFinal && suggestedPhrases.length > 0) {
+        reorderCardsFromSuggestions();
     }
-    return _cachedData;
 }
 
-// ---- OPTIMISED UI UPDATES ----
+function updateTopicDisplay() {
+    const topicEl = document.getElementById('listenTopic');
+    if (detectedKeywords.length) {
+        const topicName = detectedTopic ? (CARD_DATA[detectedTopic]?.label || detectedTopic) : 'General';
+        const kws = detectedKeywords.slice(0,3).map(k => k.word).join(', ');
+        topicEl.textContent = `Topic: ${topicName} · "${kws}"`;
+        topicEl.classList.add('has-topic');
+    }
+}
+
 function updateSuggestedStrip() {
     const strip = document.getElementById('suggestedStrip');
     const container = document.getElementById('suggestedCards');
@@ -1551,48 +1485,6 @@ function updateSuggestedStrip() {
     } else {
         strip.classList.remove('visible');
     }
-}
-
-function updateTopicDisplay() {
-    const topicEl = document.getElementById('listenTopic');
-    if (detectedKeywords.length) {
-        const topicName = detectedTopic ? (CARD_DATA[detectedTopic]?.label || detectedTopic) : 'General';
-        const kws = detectedKeywords.slice(0,3).map(k => k.word).join(', ');
-        topicEl.textContent = `Topic: ${topicName} · "${kws}"`;
-        topicEl.classList.add('has-topic');
-    }
-}
-
-function startListening() {
-    if (!recognition) recognition = initSpeechRecognition();
-    if (!recognition) {
-        showToast('Speech recognition not available on this device');
-        return;
-    }
-    try {
-        recognition.start();
-        isListening = true;
-        document.getElementById('listenToggle').classList.add('active');
-        document.getElementById('listenLabel').textContent = 'Listening...';
-        document.getElementById('listenTopic').textContent = '🎤 Hearing conversation...';
-        document.getElementById('listenTopic').classList.remove('has-topic');
-    } catch(e) {
-        // Already started
-        if (e.name === 'InvalidStateError') {
-            isListening = true;
-        }
-    }
-}
-
-function stopListening() {
-    isListening = false;
-    if (recognition) {
-        try { recognition.stop(); } catch(e) {}
-    }
-    document.getElementById('listenToggle').classList.remove('active');
-    document.getElementById('listenLabel').textContent = 'Listen';
-    document.getElementById('listenTopic').textContent = 'Tap Listen to hear the conversation';
-    document.getElementById('listenTopic').classList.remove('has-topic');
 }
 
 function reorderCardsFromSuggestions() {
@@ -1781,8 +1673,6 @@ const app = {
     loadContext(id) {
         this.currentContext = id;
         this.currentCategory = 'all';
-        // Invalidate prediction cache for new context
-        _indexContext = null; _cardIndex = null; _cachedData = null;
         this.cards = getCardsForContext(id);
         this.filteredCards = [...this.cards];
         this.index = 0;
@@ -1794,8 +1684,6 @@ const app = {
         this.showScreen('swipeScreen');
         this.updateCard();
         this.updatePredictionHints();
-        // Pre-build prediction index for instant speech processing
-        buildPredictionIndex(id);
 
         // Auto-suggest preferred category if strong preference detected
         const pref = getPreferredCategory(id);

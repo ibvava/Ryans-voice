@@ -272,6 +272,42 @@
         .starter-btn .starter-icon { font-size:20px; flex-shrink:0; }
         .starter-btn .starter-hint { font-size:11px; color:var(--text-muted); margin-left:auto; flex-shrink:0; }
 
+        /* ===== FEEDBACK BUTTONS ===== */
+        .suggested-card-wrap { display:flex; align-items:stretch; gap:4px; flex-shrink:0; }
+        .suggested-card-wrap .suggested-card { flex:1; }
+        .feedback-btns { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+        .fb-btn { width:28px; height:24px; border:1px solid var(--border-subtle); border-radius:6px; background:var(--bg-card); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; transition:all 0.12s; padding:0; }
+        .fb-btn:active { transform:scale(0.9); }
+        .fb-btn.fb-up:active { background:rgba(78,205,196,0.2); border-color:var(--accent-success); }
+        .fb-btn.fb-down:active { background:rgba(255,107,107,0.2); border-color:var(--accent-warm); }
+        .match-source { display:block; font-size:9px; opacity:0.5; margin-top:2px; }
+
+        /* ===== OT REPORT SCREEN ===== */
+        .report-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 14px calc(var(--safe-bottom) + 70px); }
+        .report-header { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:4px; }
+        .report-sub { font-size:13px; color:var(--text-secondary); margin-bottom:16px; }
+        .report-section { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px; margin-bottom:12px; }
+        .report-section-title { font-size:14px; font-weight:700; color:var(--accent-glow); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .report-stat { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(108,99,255,0.08); font-size:13px; }
+        .report-stat:last-child { border-bottom:none; }
+        .report-stat-label { color:var(--text-secondary); }
+        .report-stat-value { font-weight:600; color:var(--text-primary); }
+        .report-log-entry { padding:8px 0; border-bottom:1px solid rgba(108,99,255,0.08); font-size:12px; line-height:1.5; }
+        .report-log-entry:last-child { border-bottom:none; }
+        .report-log-time { color:var(--text-muted); font-size:11px; }
+        .report-log-heard { color:var(--accent-gold); }
+        .report-log-chosen { color:var(--accent-success); }
+        .report-log-error { color:var(--accent-warm); }
+        .report-actions { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+        .report-action-btn { background:var(--bg-card); border:1.5px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 18px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:var(--text-primary); cursor:pointer; transition:all 0.12s; flex:1; min-width:140px; text-align:center; }
+        .report-action-btn:active { transform:scale(0.96); border-color:var(--accent-primary); }
+        .report-action-btn.primary { background:var(--accent-primary); color:white; border-color:var(--accent-primary); }
+        .report-period-btns { display:flex; gap:6px; margin-bottom:14px; }
+        .report-period-btn { background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:20px; padding:6px 14px; font-size:12px; font-weight:600; color:var(--text-secondary); cursor:pointer; }
+        .report-period-btn.active { background:var(--accent-primary); color:white; border-color:var(--accent-primary); }
+        .carer-note-input { background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:10px; width:100%; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--text-primary); resize:none; }
+        .carer-note-btn { background:var(--accent-primary); color:white; border:none; border-radius:var(--radius-sm); padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer; margin-top:6px; }
+
         @media(max-width:480px) {
             .phrase-text { font-size:22px; }
             .phrase-card { padding:28px 18px 24px; min-height:240px; }
@@ -382,7 +418,6 @@
         <div class="topic-launch-header">What do you want to talk about?</div>
         <div class="topic-launch-sub">Tap a topic → pick a starter → speak it</div>
         <div id="topicGrid" class="topic-grid"></div>
-        <!-- Starters appear here when a topic is tapped -->
         <div id="starterPanel" class="starter-panel">
             <div class="starter-header" id="starterHeader"></div>
             <div class="starter-cards" id="starterCards"></div>
@@ -391,6 +426,38 @@
     <div class="bottom-nav">
         <button class="nav-btn" onclick="app.goHome()"><span class="nav-icon">🏠</span>Home</button>
         <button class="nav-btn" onclick="app.openTopicLauncher()"><span class="nav-icon">🗣️</span>Topics</button>
+    </div>
+</div>
+
+<!-- OT REPORT -->
+<div class="screen" id="reportScreen">
+    <div class="report-scroll">
+        <div class="report-header">📋 OT / Carer Report</div>
+        <div class="report-sub">Usage data, conversation logs, and error tracking</div>
+
+        <div class="report-period-btns">
+            <button class="report-period-btn active" onclick="app.renderReport('today',this)">Today</button>
+            <button class="report-period-btn" onclick="app.renderReport('week',this)">This Week</button>
+            <button class="report-period-btn" onclick="app.renderReport('all',this)">All Time</button>
+        </div>
+
+        <div id="reportContent"></div>
+
+        <div class="report-section">
+            <div class="report-section-title">📝 Add Carer Note</div>
+            <textarea class="carer-note-input" id="carerNoteInput" rows="2" placeholder="Quick note about this session..."></textarea>
+            <button class="carer-note-btn" onclick="app.saveCarerNote()">Save Note</button>
+        </div>
+
+        <div class="report-actions">
+            <button class="report-action-btn primary" onclick="app.exportReport()">📋 Copy Report</button>
+            <button class="report-action-btn" onclick="app.downloadReport()">💾 Download</button>
+            <button class="report-action-btn" onclick="app.emailReport()">📧 Email</button>
+        </div>
+    </div>
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="app.goHome()"><span class="nav-icon">🏠</span>Home</button>
+        <button class="nav-btn" onclick="app.openSettings()"><span class="nav-icon">⚙️</span>Settings</button>
     </div>
 </div>
 
@@ -874,6 +941,7 @@ const CONTEXTS = [
     {id:"home",        icon:"🏡", label:"At Home",           group:"life"},
     {id:"malayalam",   icon:"🇮🇳", label:"Malayalam",         group:"languages"},
     {id:"writing",     icon:"✍️", label:"I want to write",   group:"tools", comingSoon:true},
+    {id:"report",      icon:"📋", label:"OT Report",         group:"tools"},
     {id:"settings",    icon:"⚙️", label:"Settings",          group:"tools"},
 ];
 
@@ -892,17 +960,84 @@ function loadData() {
         if (!d.totalSpoken) d.totalSpoken = 0;
         if (!d.sessionStart) d.sessionStart = Date.now();
         // Phase 2D additions
-        if (!d.sequences) d.sequences = {};    // { "context:phraseA" : { "phraseB": count, "phraseC": count } }
-        if (!d.hourBuckets) d.hourBuckets = {};// { "context:hour(0-23)": { "phraseText": count } }
-        if (!d.catPrefs) d.catPrefs = {};      // { "context": { "emotions": count, "social": count } }
-        if (!d.sessions) d.sessions = [];       // [{ start, end, context, cardCount, phrases[] }]
-        if (!d.dailyPatterns) d.dailyPatterns = {}; // { "dayOfWeek(0-6)": { "context": count } }
+        if (!d.sequences) d.sequences = {};
+        if (!d.hourBuckets) d.hourBuckets = {};
+        if (!d.catPrefs) d.catPrefs = {};
+        if (!d.sessions) d.sessions = [];
+        if (!d.dailyPatterns) d.dailyPatterns = {};
+        // OT Report additions
+        if (!d.conversationLog) d.conversationLog = [];    // [{time, heard, topic, questionType, suggestions[], chosen, source, context}]
+        if (!d.errorLog) d.errorLog = [];                  // [{time, heard, problem, context, suggestions[]}]
+        if (!d.feedback) d.feedback = [];                  // [{time, phrase, rating:'up'|'down', heard, context}]
+        if (!d.carerNotes) d.carerNotes = [];              // [{time, note, sessionId}]
+        if (!d.topicLauncherLog) d.topicLauncherLog = [];  // [{time, topic, starter}]
         return d;
-    } catch { return {customCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now(),sequences:{},hourBuckets:{},catPrefs:{},sessions:[],dailyPatterns:{}}; }
+    } catch { return {customCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now(),sequences:{},hourBuckets:{},catPrefs:{},sessions:[],dailyPatterns:{},conversationLog:[],errorLog:[],feedback:[],carerNotes:[],topicLauncherLog:[]}; }
 }
 
 function saveData(d) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
+}
+
+// ---- FEEDBACK & ERROR LOGGING ----
+
+function logFeedback(rating, phraseText) {
+    const d = loadData();
+    const lastHeard = conversationTranscript.length > 0 ? conversationTranscript[conversationTranscript.length-1].text : '';
+    d.feedback.push({
+        time: Date.now(),
+        phrase: phraseText,
+        rating, // 'up' or 'down'
+        heard: lastHeard,
+        context: app.currentContext || '',
+        topic: detectedTopic || '',
+    });
+    if (d.feedback.length > 300) d.feedback = d.feedback.slice(-300);
+
+    // If thumbs down, also add to error log
+    if (rating === 'down') {
+        d.errorLog.push({
+            time: Date.now(),
+            heard: lastHeard,
+            problem: 'wrong_suggestion',
+            wrongPhrase: phraseText,
+            context: app.currentContext || '',
+            topic: detectedTopic || '',
+            suggestions: suggestedPhrases.slice(0,6).map(s => s.card?.text || '').filter(Boolean),
+        });
+        if (d.errorLog.length > 200) d.errorLog = d.errorLog.slice(-200);
+    }
+    saveData(d);
+}
+
+function logError(type, details) {
+    const d = loadData();
+    const lastHeard = conversationTranscript.length > 0 ? conversationTranscript[conversationTranscript.length-1].text : '';
+    d.errorLog.push({
+        time: Date.now(),
+        heard: lastHeard,
+        problem: type, // 'no_suggestions', 'wrong_topic', 'speech_not_recognised'
+        details: details || '',
+        context: app.currentContext || '',
+        topic: detectedTopic || '',
+        suggestions: suggestedPhrases.slice(0,6).map(s => s.card?.text || '').filter(Boolean),
+    });
+    if (d.errorLog.length > 200) d.errorLog = d.errorLog.slice(-200);
+    saveData(d);
+}
+
+function logTopicLaunch(topicId, starterText) {
+    const d = loadData();
+    d.topicLauncherLog.push({time: Date.now(), topic: topicId, starter: starterText});
+    if (d.topicLauncherLog.length > 200) d.topicLauncherLog = d.topicLauncherLog.slice(-200);
+    saveData(d);
+}
+
+function addCarerNote(note) {
+    const d = loadData();
+    d.carerNotes.push({time: Date.now(), note, context: app.currentContext || ''});
+    if (d.carerNotes.length > 100) d.carerNotes = d.carerNotes.slice(-100);
+    saveData(d);
 }
 
 // Last spoken phrase — for sequence tracking
@@ -924,15 +1059,15 @@ function trackUsage(contextId, cardText, category) {
     if (d.usage[key].timestamps.length > 50) d.usage[key].timestamps = d.usage[key].timestamps.slice(-50);
     d.totalSpoken = (d.totalSpoken || 0) + 1;
 
-    // 2. Sequence tracking — what does Ryan say AFTER this phrase?
-    if (lastSpokenKey && (now - lastSpokenTime) < 120000) { // Within 2 minutes = same conversation flow
+    // 2. Sequence tracking
+    if (lastSpokenKey && (now - lastSpokenTime) < 120000) {
         if (!d.sequences[lastSpokenKey]) d.sequences[lastSpokenKey] = {};
         d.sequences[lastSpokenKey][cardText] = (d.sequences[lastSpokenKey][cardText] || 0) + 1;
     }
     lastSpokenKey = key;
     lastSpokenTime = now;
 
-    // 3. Time-of-day patterns — which phrases at which hour?
+    // 3. Time-of-day patterns
     const hourKey = contextId + ':' + hour;
     if (!d.hourBuckets[hourKey]) d.hourBuckets[hourKey] = {};
     d.hourBuckets[hourKey][cardText] = (d.hourBuckets[hourKey][cardText] || 0) + 1;
@@ -951,15 +1086,29 @@ function trackUsage(contextId, cardText, category) {
     // 6. Session tracking
     const lastSession = d.sessions[d.sessions.length - 1];
     if (lastSession && (now - lastSession.lastActivity) < 300000 && lastSession.context === contextId) {
-        // Same session (within 5 min gap, same context)
         lastSession.lastActivity = now;
         lastSession.cardCount++;
         if (lastSession.phrases.length < 100) lastSession.phrases.push(cardText);
     } else {
-        // New session
         d.sessions.push({start:now, lastActivity:now, context:contextId, cardCount:1, phrases:[cardText]});
         if (d.sessions.length > 200) d.sessions = d.sessions.slice(-200);
     }
+
+    // 7. CONVERSATION LOG — what was heard vs what Ryan chose
+    const lastHeard = conversationTranscript.length > 0 ? conversationTranscript[conversationTranscript.length-1].text : '';
+    const wasSuggested = suggestedPhrases.some(s => s.card && s.card.text === cardText);
+    const suggestionTexts = suggestedPhrases.slice(0,6).map(s => s.card?.text || '').filter(Boolean);
+    d.conversationLog.push({
+        time: now,
+        heard: lastHeard,
+        topic: detectedTopic || '',
+        chosen: cardText,
+        context: contextId,
+        wasSuggested,
+        source: wasSuggested ? (suggestedPhrases.find(s => s.card?.text === cardText)?.source || '') : 'browsed',
+        suggestions: suggestionTexts,
+    });
+    if (d.conversationLog.length > 500) d.conversationLog = d.conversationLog.slice(-500);
 
     saveData(d);
 }
@@ -2358,13 +2507,20 @@ function updateSuggestedStrip() {
     const container = document.getElementById('suggestedCards');
     if (suggestedPhrases.length > 0) {
         strip.classList.add('visible');
-        container.innerHTML = suggestedPhrases.map(s => {
+        container.innerHTML = suggestedPhrases.map((s, i) => {
             const escaped = s.card.text.replace(/'/g, "\\'");
             const pct = Math.min(99, Math.round(s.score * 5));
             let tag = '';
             if (s.crossContext) tag = ` · ${CARD_DATA[s.crossContext]?.label || s.crossContext}`;
             if (s.virtual) tag = ' · ➕ add';
-            return `<button class="suggested-card${s.virtual?' virtual':''}" onclick="app.speakSuggested('${escaped}'${s.virtual?',true':''})">${s.card.text}<span class="match-score">${pct}%${tag}</span></button>`;
+            const sourceTag = s.source ? `<span class="match-source">${s.source}</span>` : '';
+            return `<div class="suggested-card-wrap">
+                <button class="suggested-card${s.virtual?' virtual':''}" onclick="app.speakSuggested('${escaped}'${s.virtual?',true':''})">${s.card.text}<span class="match-score">${pct}%${tag}</span>${sourceTag}</button>
+                <div class="feedback-btns">
+                    <button class="fb-btn fb-up" onclick="event.stopPropagation();logFeedback('up','${escaped}');this.parentElement.innerHTML='✅';" title="Good suggestion">👍</button>
+                    <button class="fb-btn fb-down" onclick="event.stopPropagation();logFeedback('down','${escaped}');this.parentElement.innerHTML='❌ logged';" title="Wrong suggestion">👎</button>
+                </div>
+            </div>`;
         }).join('');
     } else {
         strip.classList.remove('visible');
@@ -2624,6 +2780,7 @@ const app = {
         speakText(text);
         conversationMemory.remember(topicId, [topicId], 3);
         trackUsage('conversation', text);
+        logTopicLaunch(topicId, text);
 
         const contextMap = {
             food:'home', drink:'home', hygiene:'home', sleep:'home', chores:'home', cooking:'home',
@@ -2673,6 +2830,7 @@ const app = {
                 else if (ctx.id === 'settings') action = `app.openSettings()`;
                 else if (ctx.id === 'sensory') action = `app.openSOS()`;
                 else if (ctx.id === 'topicLaunch') action = `app.openTopicLauncher()`;
+                else if (ctx.id === 'report') action = `app.openReport()`;
                 else action = `app.loadContext('${ctx.id}')`;
                 return `<div class="context-tile${ctx.comingSoon?' coming-soon':''}${isUrgent?' urgent-tile':''}" onclick="${action}"><div class="tile-icon">${ctx.icon}</div><div style="${isUrgent?'text-align:left':''}"><div class="tile-label">${ctx.label}</div>${total?`<div class="tile-count">${total} phrases${isUrgent?' — sensory, overwhelm, needs':''}</div>`:''}</div></div>`;
             }).join('');
@@ -3020,6 +3178,272 @@ const app = {
         speechRate = parseFloat(val);
         document.getElementById('speedValue').textContent = speechRate.toFixed(2) + '×';
         const d = loadData(); d.preferences.voiceRate = speechRate; saveData(d);
+    },
+
+    // ===== OT REPORT SYSTEM =====
+    openReport() {
+        document.getElementById('contextBadge').textContent = '📋 OT Report';
+        document.getElementById('backBtn').classList.add('visible');
+        this.renderReport('today');
+        this.showScreen('reportScreen');
+    },
+
+    renderReport(period, btnEl) {
+        // Update period button state
+        if (btnEl) {
+            document.querySelectorAll('.report-period-btn').forEach(b => b.classList.remove('active'));
+            btnEl.classList.add('active');
+        }
+
+        const d = loadData();
+        const now = Date.now();
+        const cutoffs = {
+            today: now - 24*60*60*1000,
+            week: now - 7*24*60*60*1000,
+            all: 0,
+        };
+        const cutoff = cutoffs[period] || 0;
+        const fmt = (ts) => new Date(ts).toLocaleTimeString('en-AU', {hour:'2-digit',minute:'2-digit'});
+        const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-AU', {weekday:'short',day:'numeric',month:'short'});
+
+        // Filter data by period
+        const sessions = d.sessions.filter(s => s.start > cutoff);
+        const convoLog = d.conversationLog.filter(l => l.time > cutoff);
+        const errors = d.errorLog.filter(e => e.time > cutoff);
+        const fb = d.feedback.filter(f => f.time > cutoff);
+        const notes = d.carerNotes.filter(n => n.time > cutoff);
+        const launches = d.topicLauncherLog.filter(l => l.time > cutoff);
+
+        let html = '';
+
+        // ---- SUMMARY STATS ----
+        const totalSpoken = convoLog.length;
+        const suggestedUsed = convoLog.filter(l => l.wasSuggested).length;
+        const accuracy = totalSpoken > 0 ? Math.round(suggestedUsed / totalSpoken * 100) : 0;
+        const avgSession = sessions.length > 0 ? Math.round(sessions.reduce((sum,s) => sum + (s.lastActivity - s.start), 0) / sessions.length / 60000) : 0;
+        const thumbsUp = fb.filter(f => f.rating === 'up').length;
+        const thumbsDown = fb.filter(f => f.rating === 'down').length;
+
+        // Topic breakdown
+        const topicCounts = {};
+        convoLog.forEach(l => { if (l.topic) topicCounts[l.topic] = (topicCounts[l.topic]||0) + 1; });
+        const topTopics = Object.entries(topicCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+        html += `<div class="report-section">
+            <div class="report-section-title">📊 Summary</div>
+            <div class="report-stat"><span class="report-stat-label">Sessions</span><span class="report-stat-value">${sessions.length}</span></div>
+            <div class="report-stat"><span class="report-stat-label">Phrases spoken</span><span class="report-stat-value">${totalSpoken}</span></div>
+            <div class="report-stat"><span class="report-stat-label">From suggestions</span><span class="report-stat-value">${suggestedUsed} (${accuracy}%)</span></div>
+            <div class="report-stat"><span class="report-stat-label">From browsing cards</span><span class="report-stat-value">${totalSpoken - suggestedUsed}</span></div>
+            <div class="report-stat"><span class="report-stat-label">Avg session length</span><span class="report-stat-value">${avgSession} min</span></div>
+            <div class="report-stat"><span class="report-stat-label">Topic Launcher used</span><span class="report-stat-value">${launches.length} times</span></div>
+            <div class="report-stat"><span class="report-stat-label">👍 Good suggestions</span><span class="report-stat-value" style="color:var(--accent-success)">${thumbsUp}</span></div>
+            <div class="report-stat"><span class="report-stat-label">👎 Wrong suggestions</span><span class="report-stat-value" style="color:var(--accent-warm)">${thumbsDown}</span></div>
+        </div>`;
+
+        // ---- TOP TOPICS ----
+        if (topTopics.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title">🎯 Top Topics</div>`;
+            topTopics.forEach(([topic, count]) => {
+                const pct = Math.round(count / totalSpoken * 100);
+                html += `<div class="report-stat"><span class="report-stat-label">${topic}</span><span class="report-stat-value">${count} (${pct}%)</span></div>`;
+            });
+            html += `</div>`;
+        }
+
+        // ---- ERROR LOG ----
+        if (errors.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title" style="color:var(--accent-warm)">❌ Errors & Issues (${errors.length})</div>`;
+            errors.slice(-15).reverse().forEach(e => {
+                html += `<div class="report-log-entry">
+                    <span class="report-log-time">${fmtDate(e.time)} ${fmt(e.time)}</span><br>
+                    <span class="report-log-heard">Heard: "${e.heard || 'unknown'}"</span><br>
+                    <span class="report-log-error">Problem: ${e.problem}${e.wrongPhrase ? ' — "'+e.wrongPhrase+'"' : ''}${e.details ? ' — '+e.details : ''}</span><br>
+                    <span style="color:var(--text-muted);font-size:11px">Topic: ${e.topic || 'none'} | Context: ${e.context || 'none'}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // ---- CONVERSATION LOG ----
+        if (convoLog.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title">💬 Conversation Log (last 20)</div>`;
+            convoLog.slice(-20).reverse().forEach(l => {
+                const sourceIcon = l.wasSuggested ? '🎯' : '📋';
+                html += `<div class="report-log-entry">
+                    <span class="report-log-time">${fmtDate(l.time)} ${fmt(l.time)}</span><br>
+                    ${l.heard ? `<span class="report-log-heard">🎤 "${l.heard}"</span><br>` : ''}
+                    <span class="report-log-chosen">${sourceIcon} Ryan said: "${l.chosen}"</span>
+                    <span style="color:var(--text-muted);font-size:11px"> · ${l.source || 'browsed'} · ${l.topic || 'no topic'}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // ---- FEEDBACK LOG ----
+        if (fb.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title">👍👎 Suggestion Feedback (${fb.length})</div>`;
+            fb.slice(-15).reverse().forEach(f => {
+                const icon = f.rating === 'up' ? '👍' : '👎';
+                html += `<div class="report-log-entry">
+                    <span class="report-log-time">${fmt(f.time)}</span> ${icon}
+                    "${f.phrase}"
+                    ${f.heard ? `<span style="color:var(--text-muted)"> · heard: "${f.heard}"</span>` : ''}
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // ---- CARER NOTES ----
+        if (notes.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title">📝 Carer Notes</div>`;
+            notes.reverse().forEach(n => {
+                html += `<div class="report-log-entry"><span class="report-log-time">${fmtDate(n.time)} ${fmt(n.time)}</span><br>${n.note}</div>`;
+            });
+            html += `</div>`;
+        }
+
+        // ---- TOPIC LAUNCHER USAGE ----
+        if (launches.length > 0) {
+            html += `<div class="report-section"><div class="report-section-title">🗣️ Ryan Initiated (${launches.length})</div>`;
+            launches.slice(-10).reverse().forEach(l => {
+                html += `<div class="report-log-entry"><span class="report-log-time">${fmt(l.time)}</span> Topic: <strong>${l.topic}</strong> — "${l.starter}"</div>`;
+            });
+            html += `</div>`;
+        }
+
+        if (!totalSpoken && !errors.length && !notes.length) {
+            html = `<div class="report-section"><div class="report-section-title">No data yet</div><p style="color:var(--text-secondary);font-size:14px">Start using the app and data will appear here. Conversation logs, errors, and feedback are all tracked automatically.</p></div>`;
+        }
+
+        document.getElementById('reportContent').innerHTML = html;
+    },
+
+    saveCarerNote() {
+        const input = document.getElementById('carerNoteInput');
+        const note = input.value.trim();
+        if (!note) { showToast('Please type a note'); return; }
+        addCarerNote(note);
+        input.value = '';
+        showToast('📝 Note saved', 'success');
+        this.renderReport('today');
+    },
+
+    generateReportText(period) {
+        const d = loadData();
+        const now = Date.now();
+        const cutoffs = {today:now-24*60*60*1000, week:now-7*24*60*60*1000, all:0};
+        const cutoff = cutoffs[period||'week'] || 0;
+        const fmt = (ts) => new Date(ts).toLocaleString('en-AU');
+
+        const sessions = d.sessions.filter(s => s.start > cutoff);
+        const convoLog = d.conversationLog.filter(l => l.time > cutoff);
+        const errors = d.errorLog.filter(e => e.time > cutoff);
+        const fb = d.feedback.filter(f => f.time > cutoff);
+        const notes = d.carerNotes.filter(n => n.time > cutoff);
+        const launches = d.topicLauncherLog.filter(l => l.time > cutoff);
+
+        const totalSpoken = convoLog.length;
+        const suggestedUsed = convoLog.filter(l => l.wasSuggested).length;
+        const accuracy = totalSpoken > 0 ? Math.round(suggestedUsed/totalSpoken*100) : 0;
+        const thumbsDown = fb.filter(f => f.rating==='down').length;
+
+        const topicCounts = {};
+        convoLog.forEach(l => { if (l.topic) topicCounts[l.topic] = (topicCounts[l.topic]||0)+1; });
+        const topTopics = Object.entries(topicCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+        let report = `📋 RYAN'S AAC — OT REPORT\n`;
+        report += `Generated: ${new Date().toLocaleString('en-AU')}\n`;
+        report += `Period: ${period === 'today' ? 'Today' : period === 'week' ? 'This Week' : 'All Time'}\n`;
+        report += `${'='.repeat(50)}\n\n`;
+
+        report += `📊 USAGE SUMMARY\n`;
+        report += `Sessions: ${sessions.length}\n`;
+        report += `Phrases spoken: ${totalSpoken}\n`;
+        report += `From suggestions: ${suggestedUsed} (${accuracy}%)\n`;
+        report += `From browsing: ${totalSpoken - suggestedUsed}\n`;
+        report += `Topic Launcher used: ${launches.length} times\n`;
+        report += `Wrong suggestions flagged: ${thumbsDown}\n\n`;
+
+        if (topTopics.length) {
+            report += `🎯 TOP TOPICS\n`;
+            topTopics.forEach(([t,c]) => { report += `  ${t}: ${c} (${Math.round(c/totalSpoken*100)}%)\n`; });
+            report += `\n`;
+        }
+
+        if (errors.length) {
+            report += `❌ ERRORS & ISSUES (${errors.length})\n`;
+            errors.slice(-20).forEach(e => {
+                report += `  ${fmt(e.time)}\n`;
+                report += `    Heard: "${e.heard||'unknown'}"\n`;
+                report += `    Problem: ${e.problem}${e.wrongPhrase?' — "'+e.wrongPhrase+'"':''}${e.details?' — '+e.details:''}\n`;
+                report += `    Topic: ${e.topic||'none'} | Context: ${e.context||'none'}\n\n`;
+            });
+        }
+
+        if (convoLog.length) {
+            report += `💬 CONVERSATION LOG (last 30)\n`;
+            convoLog.slice(-30).forEach(l => {
+                report += `  ${fmt(l.time)}\n`;
+                if (l.heard) report += `    🎤 Heard: "${l.heard}"\n`;
+                report += `    ${l.wasSuggested?'🎯':'📋'} Ryan said: "${l.chosen}" [${l.source||'browsed'}]\n`;
+                if (l.suggestions?.length) report += `    Suggestions were: ${l.suggestions.slice(0,4).map(s=>'"'+s+'"').join(', ')}\n`;
+                report += `\n`;
+            });
+        }
+
+        if (launches.length) {
+            report += `🗣️ RYAN INITIATED CONVERSATIONS\n`;
+            launches.forEach(l => {
+                report += `  ${fmt(l.time)} — Topic: ${l.topic} — "${l.starter}"\n`;
+            });
+            report += `\n`;
+        }
+
+        if (notes.length) {
+            report += `📝 CARER NOTES\n`;
+            notes.forEach(n => {
+                report += `  ${fmt(n.time)}: ${n.note}\n`;
+            });
+            report += `\n`;
+        }
+
+        report += `${'='.repeat(50)}\n`;
+        report += `Report generated by Ryan's AAC App\n`;
+        return report;
+    },
+
+    exportReport() {
+        const report = this.generateReportText('week');
+        navigator.clipboard.writeText(report).then(() => {
+            showToast('📋 Report copied!', 'success');
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = report; ta.style.position='fixed'; ta.style.left='-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('📋 Copied!', 'success'); } catch {}
+            document.body.removeChild(ta);
+        });
+    },
+
+    downloadReport() {
+        const report = this.generateReportText('week');
+        const blob = new Blob([report], {type:'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ryans-aac-report-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('💾 Downloaded!', 'success');
+    },
+
+    emailReport() {
+        const report = this.generateReportText('week');
+        const subject = encodeURIComponent(`Ryan's AAC Report — ${new Date().toLocaleDateString('en-AU')}`);
+        const body = encodeURIComponent(report);
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }
 };
 

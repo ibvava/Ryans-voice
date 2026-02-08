@@ -207,6 +207,7 @@
         .suggested-card { background:var(--bg-card); border:2px solid var(--accent-primary); border-radius:var(--radius-lg); padding:16px 20px; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600; color:var(--text-primary); cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all 0.12s; max-width:320px; overflow:hidden; text-overflow:ellipsis; min-height:56px; display:flex; align-items:center; gap:8px; }
         .suggested-card:active { transform:scale(0.95); background:var(--accent-primary); color:white; }
         .suggested-card .match-score { font-size:11px; color:var(--accent-gold); margin-left:4px; flex-shrink:0; }
+        .suggested-card.virtual { border-style:dashed; border-color:var(--accent-gold); }
 
         /* ===== YES/NO BAR — persistent on all screens ===== */
         .yesno-bar { display:flex; gap:10px; padding:8px 14px; background:var(--bg-card); border-bottom:1px solid var(--border-subtle); flex-shrink:0; z-index:90; }
@@ -465,7 +466,7 @@ story: {
 },
 conversation: {
     label: "💬 Conversation", icon: "💬",
-    categories: ["greetings","responses","feelings","requests","opinions","social"],
+    categories: ["greetings","responses","feelings","requests","opinions","social","choices"],
     cards: [
         // Greetings
         {text:"G'day.",cat:"greetings"},
@@ -549,6 +550,50 @@ conversation: {
         {text:"That was really funny.",cat:"social"},
         {text:"I appreciate you saying that.",cat:"social"},
         {text:"How was your day?",cat:"social"},
+        // Choices — food, drink, activity, general preferences
+        {text:"Pizza, please.",cat:"choices"},
+        {text:"Pasta would be good.",cat:"choices"},
+        {text:"Chicken and rice.",cat:"choices"},
+        {text:"I'd like a sandwich.",cat:"choices"},
+        {text:"Can I have noodles?",cat:"choices"},
+        {text:"Something simple.",cat:"choices"},
+        {text:"Something warm.",cat:"choices"},
+        {text:"Something light.",cat:"choices"},
+        {text:"I'm not fussy, you choose.",cat:"choices"},
+        {text:"Whatever everyone else is having.",cat:"choices"},
+        {text:"I don't feel like eating.",cat:"choices"},
+        {text:"I'd like what I had last time.",cat:"choices"},
+        {text:"Can I see the options?",cat:"choices"},
+        {text:"Water, please.",cat:"choices"},
+        {text:"Juice would be good.",cat:"choices"},
+        {text:"Hot chocolate, please.",cat:"choices"},
+        {text:"Can I have milk?",cat:"choices"},
+        {text:"Something cold to drink.",cat:"choices"},
+        {text:"I'm not thirsty.",cat:"choices"},
+        {text:"I want to play a game.",cat:"choices"},
+        {text:"Can we watch something?",cat:"choices"},
+        {text:"I'd like to go outside.",cat:"choices"},
+        {text:"Can I use the iPad?",cat:"choices"},
+        {text:"I want to read.",cat:"choices"},
+        {text:"Can we do something together?",cat:"choices"},
+        {text:"I'd rather stay in.",cat:"choices"},
+        {text:"Something fun.",cat:"choices"},
+        {text:"Something quiet.",cat:"choices"},
+        {text:"I want to draw.",cat:"choices"},
+        {text:"The first one.",cat:"choices"},
+        {text:"The second one.",cat:"choices"},
+        {text:"That one, please.",cat:"choices"},
+        {text:"I don't mind.",cat:"choices"},
+        {text:"You choose for me.",cat:"choices"},
+        {text:"I need a moment to decide.",cat:"choices"},
+        {text:"Neither, thanks.",cat:"choices"},
+        {text:"Both sound good.",cat:"choices"},
+        {text:"I'd like something different.",cat:"choices"},
+        {text:"Can we go to the park?",cat:"choices"},
+        {text:"Can we go to the shops?",cat:"choices"},
+        {text:"I want to stay home.",cat:"choices"},
+        {text:"Somewhere quiet.",cat:"choices"},
+        {text:"I don't mind, you pick.",cat:"choices"},
     ]
 },
 math: {
@@ -1281,6 +1326,12 @@ const TOPIC_KEYWORDS = {
 // Question patterns → response type
 const QUESTION_PATTERNS = [
     {pattern:/\b(how are you|how's it going|how you going|how ya going)\b/i, type:'feelings'},
+    {pattern:/\b(what.{0,10}(food|eat|dinner|lunch|breakfast|snack|hungry|meal|order))\b/i, type:'food'},
+    {pattern:/\b(what.{0,10}(drink|thirsty|beverage|water|juice))\b/i, type:'drink'},
+    {pattern:/\b(what.{0,10}(want to do|like to do|activity|play))\b/i, type:'activity'},
+    {pattern:/\b(where.{0,10}(want to go|like to go|should we go|shall we go))\b/i, type:'place'},
+    {pattern:/\b(what would you like|what do you want|what do you feel like|what would you prefer)\b/i, type:'choice'},
+    {pattern:/\b(which one|which do you|pick one|choose)\b/i, type:'choice'},
     {pattern:/\b(do you want|would you like|wanna|want to)\b/i, type:'yesno'},
     {pattern:/\b(what do you think|what's your opinion|reckon)\b/i, type:'opinions'},
     {pattern:/\b(did you like|do you like|enjoy)\b/i, type:'preferences'},
@@ -1301,6 +1352,11 @@ const RESPONSE_SUGGESTIONS = {
     narrative: {boostCats:['social','feelings'], boostPhrases:["I've been thinking about something.","Something happened at school.","I had a good day today.","Tell me more about that."]},
     specific: {boostCats:['responses','requests'], boostPhrases:["I'm not sure about that.","Give me a moment to think.","Can you ask me a yes or no question?"]},
     explanation: {boostCats:['opinions','responses'], boostPhrases:["It depends on the situation.","There's more to it than that.","I reckon so.","Can we look at it from a different angle?"]},
+    food: {boostCats:['choices','responses'], boostPhrases:["Pizza, please.","Pasta would be good.","Chicken and rice.","I'd like a sandwich.","Can I have noodles?","Something simple.","I'm not fussy, you choose.","I don't feel like eating.","Can I see the options?","Whatever everyone else is having.","Something warm.","Something light.","I'd like what I had last time."]},
+    drink: {boostCats:['choices','responses'], boostPhrases:["Water, please.","Juice would be good.","Hot chocolate, please.","Can I have milk?","I'm not thirsty.","Something cold.","Something warm."]},
+    activity: {boostCats:['choices','social'], boostPhrases:["I want to play a game.","Can we watch something?","I'd like to go outside.","Can I use the iPad?","I want to read.","Can we do something together?","I'd rather stay in.","Something fun.","Something quiet.","I want to draw.","Can we go to the park?"]},
+    place: {boostCats:['choices','social'], boostPhrases:["I'd like to go to the park.","Can we go to the shops?","I want to stay home.","Let's go outside.","Somewhere quiet.","Somewhere fun.","I don't mind, you pick."]},
+    choice: {boostCats:['choices','responses'], boostPhrases:["The first one.","The second one.","That one, please.","I don't mind.","You choose for me.","Can I see the options?","I need a moment to decide.","Neither, thanks.","Both sound good.","I'd like something different."]},
 };
 
 function initSpeechRecognition() {
@@ -1473,11 +1529,33 @@ function analyseAndSuggest(text, isFinal) {
         });
     }
 
-    // Fallback: question detected but no keyword matches
-    if (scores.length === 0 && questionType && RESPONSE_SUGGESTIONS[questionType]) {
-        RESPONSE_SUGGESTIONS[questionType].boostPhrases.forEach(text => {
-            const card = allCards.find(c => c.text === text);
-            if (card) scores.push({card, score:5});
+    // Fallback: question detected — ALWAYS inject boost phrases as suggestions
+    // even if they're not in the current context's card deck
+    if (questionType && RESPONSE_SUGGESTIONS[questionType]) {
+        const rs = RESPONSE_SUGGESTIONS[questionType];
+        const alreadySuggested = new Set(scores.map(s => s.card.text));
+        rs.boostPhrases.forEach(text => {
+            if (!alreadySuggested.has(text)) {
+                // Check if card exists in current context
+                const existingCard = allCards.find(c => c.text === text);
+                if (existingCard) {
+                    scores.push({card:existingCard, score:7});
+                } else {
+                    // Check conversation context (most likely home for everyday phrases)
+                    let found = null;
+                    for (const ctxId of Object.keys(CARD_DATA)) {
+                        if (ctxId === app.currentContext) continue;
+                        const match = CARD_DATA[ctxId].cards.find(c => c.text === text);
+                        if (match) { found = {card:match, ctx:ctxId}; break; }
+                    }
+                    if (found) {
+                        scores.push({card:found.card, score:7, crossContext:found.ctx});
+                    } else {
+                        // Phrase exists only in boost list — create a virtual card
+                        scores.push({card:{text, cat:'choices'}, score:7, virtual:true});
+                    }
+                }
+            }
         });
     }
 
@@ -1510,8 +1588,10 @@ function updateSuggestedStrip() {
         container.innerHTML = suggestedPhrases.map(s => {
             const escaped = s.card.text.replace(/'/g, "\\'");
             const pct = Math.min(99, Math.round(s.score * 5));
-            const cross = s.crossContext ? ` · ${s.crossContext}` : '';
-            return `<button class="suggested-card" onclick="app.speakSuggested('${escaped}')">${s.card.text}<span class="match-score">${pct}%${cross}</span></button>`;
+            let tag = '';
+            if (s.crossContext) tag = ` · ${CARD_DATA[s.crossContext]?.label || s.crossContext}`;
+            if (s.virtual) tag = ' · ➕ add';
+            return `<button class="suggested-card${s.virtual?' virtual':''}" onclick="app.speakSuggested('${escaped}'${s.virtual?',true':''})">${s.card.text}<span class="match-score">${pct}%${tag}</span></button>`;
         }).join('');
     } else {
         strip.classList.remove('visible');
@@ -1575,10 +1655,18 @@ const app = {
         panel.classList.toggle('open');
     },
 
-    speakSuggested(text) {
+    speakSuggested(text, isVirtual) {
         speakText(text);
         if (this.currentContext) trackUsage(this.currentContext, text);
         this.renderStats();
+        // If virtual card (not in any context), auto-add to current context
+        if (isVirtual && this.currentContext) {
+            addCustomCard(this.currentContext, text, 'choices');
+            // Refresh cards
+            this.cards = getCardsForContext(this.currentContext);
+            this.filteredCards = this.currentCategory === 'all' ? [...this.cards] : this.cards.filter(c => c.cat === this.currentCategory);
+            showToast('✅ "' + text.substring(0,30) + '..." added to your phrases');
+        }
     },
 
     // SOS Dashboard

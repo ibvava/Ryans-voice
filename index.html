@@ -1565,7 +1565,7 @@ const TOPIC_STARTERS = {
 // TOPIC CLOUDS — semantic word groups that trigger topic detection
 const TOPIC_CLOUDS = {
     // Daily Living
-    food:      ['eat','food','dinner','lunch','breakfast','snack','hungry','cook','meal','order','restaurant','menu','recipe','kitchen','fridge','pizza','pasta','chicken','rice','sandwich','noodle','soup','salad','fruit','dessert','cake','chocolate','cereal','toast','egg','cheese','bread','vegetable','meat','fish','curry','roast','bbq','takeaway','delicious','yummy','taste'],
+    food:      ['eat','food','dinner','lunch','breakfast','snack','hungry','cook','meal','order','restaurant','menu','recipe','kitchen','fridge','pizza','pasta','chicken','rice','sandwich','noodle','soup','salad','fruit','dessert','cake','chocolate','cereal','toast','egg','cheese','bread','vegetable','meat','fish','curry','roast','bbq','takeaway','delicious','yummy','taste','hot','cold','warm','spicy','mild'],
     drink:     ['drink','thirsty','water','juice','tea','coffee','milk','cup','bottle','hot chocolate','smoothie','lemonade','cordial','sip'],
     hygiene:   ['shower','bath','teeth','brush','wash','clean','soap','towel','haircut','clothes','dressed','change','deodorant','shampoo','toilet','bathroom'],
     transport: ['car','bus','train','drive','ride','walk','pick up','drop off','school bus','seat belt','window','trip','travel','uber','taxi','bike','scooter'],
@@ -1573,7 +1573,7 @@ const TOPIC_CLOUDS = {
     health:    ['doctor','dentist','medicine','pain','sick','appointment','hospital','check up','injection','needle','temperature','headache','stomach','throat','cough','flu','allergy','tablet','pill'],
     sleep:     ['bed','sleep','tired','wake','dream','nightmare','pillow','blanket','alarm','morning','rest','nap','sleepy','yawn','stay up','bedtime'],
     chores:    ['clean','tidy','room','dishes','laundry','rubbish','vacuum','help','job','task','done','finished','pack','unpack','organise','put away'],
-    weather:   ['rain','sun','hot','cold','warm','weather','umbrella','jacket','coat','wind','storm','cloudy','sunny'],
+    weather:   ['rain','sun','weather','umbrella','jacket','coat','wind','storm','cloudy','sunny','forecast','degrees','temperature','humid','hail','thunder','lightning','drizzle'],
 
     // Academic
     math:      ['math','maths','number','calculate','equation','multiply','divide','add','subtract','algebra','geometry','fraction','decimal','percent','angle','triangle','formula','theorem','proof','pattern','symmetry','graph','function','variable','pi','infinity','statistics','probability','prime','factor','square root','derivative','integral','matrix','vector'],
@@ -1590,7 +1590,7 @@ const TOPIC_CLOUDS = {
     sports:    ['sport','soccer','football','cricket','swim','run','basketball','tennis','kick','catch','throw','race','goal','point','match','training','coach','practice'],
 
     // Emotional/Sensory
-    sensory:   ['loud','noise','smell','bright','light','touch','hot','cold','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering'],
+    sensory:   ['loud','noise','smell','bright','light','touch','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering'],
     feelings:  ['happy','sad','angry','scared','worried','excited','nervous','calm','frustrated','proud','embarrassed','lonely','bored','confused','anxious','stressed','overwhelmed','grateful','hopeful','disappointed'],
 
     // Additional Topics
@@ -1632,6 +1632,7 @@ const QUESTION_PATTERNS = [
 const CONTEXTUAL_RESPONSES = {
     // ---- FOOD ----
     'food:food_choice':   ["Pizza, please.","Pasta would be good.","Chicken and rice.","I'd like a sandwich.","Can I have noodles?","Something warm.","Something simple.","I'm not fussy, you choose.","Whatever everyone else is having.","I'd like what I had last time.","Can I see what's available?","Soup sounds good.","Something with cheese."],
+    'food:choice':        ["Hot, please.","Cold would be good.","Mild, not too spicy.","I like it spicy.","Room temperature is fine.","Warm, please.","Either is fine — I don't mind."],
     'food:choice':        ["Pizza, please.","Pasta would be good.","Something simple.","I'm not fussy, you choose.","Can I see the options?","I'd like what I had last time."],
     'food:review':        ["It was delicious.","Not my favourite.","That was really good.","It was okay.","I didn't like the texture.","Can we have that again?","It needed more flavour.","Best meal ever."],
     'food:yesno':         ["Yes please, I'm hungry.","No thanks, I'm full.","Maybe a little bit.","Just a small amount.","Not right now.","I could eat.","Yes, I'm starving."],
@@ -1915,7 +1916,117 @@ function initSpeechRecognition() {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = 'en-AU';
-    rec.maxAlternatives = 1;
+    rec.maxAlternatives = 3; // Get multiple interpretations for better accuracy
+
+    // ============================================================
+    // SPEECH CORRECTION ENGINE
+    // ============================================================
+
+    // Level 1: Exact phrase corrections (misheard → intended)
+    const PHRASE_CORRECTIONS = {
+        // Common mishearings
+        'would you kike':'would you like', 'would you lick':'would you like',
+        'wood you like':'would you like', 'what would you lie':'what would you like',
+        'what would you light':'what would you like',
+        'are you hungary':'are you hungry', 'are you hundry':'are you hungry',
+        'are you hunger':'are you hungry',
+        'how is school':'how was school', 'how a school':'how was school',
+        'have you don':'have you done', 'have you dun':'have you done',
+        'are you ok':'are you okay', 'you ok':'you okay',
+        'did you finnish':'did you finish', 'have you finnish':'have you finish',
+        'do you want':'do you want', 'you want':'you want',
+        'what do you thing':'what do you think', 'what you think':'what do you think',
+        'tell me a boat':'tell me about', 'tell me a bout':'tell me about',
+        'how\'s it go in':'how\'s it going',
+        'what you doing':'what are you doing', 'whatcha doing':'what are you doing',
+        'where you going':'where are you going',
+    };
+
+    // Level 2: Word-level corrections (single words commonly misheard)
+    const WORD_CORRECTIONS = {
+        'kike':'like', 'lick':'like', 'lie':'like', 'light':'like',
+        'hungary':'hungry', 'hundry':'hungry', 'hunger':'hungry',
+        'finnish':'finish', 'finsh':'finish',
+        'hom':'home', 'hone':'home',
+        'scool':'school', 'shool':'school',
+        'brekfast':'breakfast', 'brekkie':'breakfast',
+        'diner':'dinner', 'dinna':'dinner',
+        'lnch':'lunch', 'lanch':'lunch',
+        'piza':'pizza', 'pitza':'pizza',
+        'paster':'pasta', 'parsta':'pasta',
+        'chiken':'chicken', 'chickin':'chicken',
+        'carry':'curry', 'cary':'curry', 'karee':'curry',
+        'wanna':'want to', 'gonna':'going to', 'gotta':'got to',
+        'dunno':'don\'t know', 'lemme':'let me', 'gimme':'give me',
+        'ya':'you', 'yer':'your', 'ya\'ll':'you all',
+        'nah':'no', 'yep':'yes', 'yeah':'yes', 'yea':'yes',
+        'cos':'because', 'coz':'because', 'cause':'because',
+        'bout':'about', 'em':'them', 'til':'until',
+        'reckon':'reckon', 'arvo':'afternoon', 'brekky':'breakfast',
+        'heaps':'lots', 'choccy':'chocolate', 'biccy':'biscuit',
+        'tomoz':'tomorrow', 'sunnies':'sunglasses',
+        'maths':'maths', 'math':'math',
+        'telly':'television', 'footy':'football',
+    };
+
+    // Level 3: Phonetic pairs — words that SOUND similar and get swapped
+    // Used for fuzzy topic matching, not transcript correction
+    const PHONETIC_PAIRS = {
+        'eat':'eat', 'it':'eat',   // "would you like to it" → might mean "eat"
+        'hot':'hot', 'hat':'hot',
+        'cold':'cold', 'called':'cold',
+        'game':'game', 'gain':'game',
+        'book':'book', 'buck':'book',
+        'write':'write', 'right':'write',
+        'read':'read', 'red':'read',
+        'know':'know', 'no':'know',
+        'new':'new', 'knew':'new',
+        'there':'there', 'their':'there',
+        'weather':'weather', 'whether':'weather',
+        'where':'where', 'wear':'where',
+        'here':'here', 'hear':'here',
+    };
+
+    function correctSpeech(text) {
+        let corrected = text.toLowerCase();
+
+        // Step 1: Try phrase-level corrections first (more accurate)
+        for (const [wrong, right] of Object.entries(PHRASE_CORRECTIONS)) {
+            if (corrected.includes(wrong)) {
+                corrected = corrected.replace(wrong, right);
+            }
+        }
+
+        // Step 2: Word-level corrections
+        const words = corrected.split(/\s+/);
+        const fixed = words.map(w => {
+            const clean = w.replace(/[.,!?;:'"]/g, '');
+            return WORD_CORRECTIONS[clean] ? corrected.replace(clean, WORD_CORRECTIONS[clean]) && WORD_CORRECTIONS[clean] : w;
+        });
+        corrected = fixed.join(' ');
+
+        return corrected;
+    }
+
+    // Fuzzy topic matching — checks if misheard words are phonetically close to topic keywords
+    // This is exported for use in analyseAndSuggest
+    window._phoneticPairs = PHONETIC_PAIRS;
+
+    // Pick best transcript from alternatives
+    function getBestTranscript(results, index) {
+        let bestText = '';
+        let bestConfidence = 0;
+        for (let a = 0; a < results[index].length; a++) {
+            const alt = results[index][a];
+            // Prefer higher confidence, but also prefer longer transcripts
+            const score = alt.confidence + (alt.transcript.trim().length > 5 ? 0.05 : 0);
+            if (score > bestConfidence) {
+                bestConfidence = score;
+                bestText = alt.transcript;
+            }
+        }
+        return bestText;
+    }
 
     let debounceTimer = null;
     let lastProcessedText = '';
@@ -1924,27 +2035,35 @@ function initSpeechRecognition() {
         let finalTranscript = '';
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const t = event.results[i][0].transcript;
-            if (event.results[i].isFinal) finalTranscript += t;
-            else interimTranscript += t;
+            if (event.results[i].isFinal) {
+                finalTranscript += getBestTranscript(event.results, i);
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
         }
 
         // Show what's being heard immediately
         const recent = conversationTranscript.slice(-3).map(u => u.text).join(' … ');
         updateTranscriptDisplay(recent + (interimTranscript ? ' ' + interimTranscript : ''));
 
-        // Process FINAL results immediately — full analysis + reorder
+        // Process FINAL results immediately — with correction
         if (finalTranscript) {
             clearTimeout(debounceTimer);
-            const text = finalTranscript.trim();
+            const raw = finalTranscript.trim();
+            const text = correctSpeech(raw);
+            // Show corrected text in transcript if different
+            if (text !== raw.toLowerCase()) {
+                updateTranscriptDisplay(recent + ' ✏️ ' + text);
+            }
             conversationTranscript.push({text, time:Date.now()});
             if (conversationTranscript.length > 20) conversationTranscript = conversationTranscript.slice(-20);
             lastProcessedText = text;
             analyseAndSuggest(text, true);
         }
-        // Process INTERIM results with debounce — suggestions only, no reorder
+        // Process INTERIM results with debounce
         else if (interimTranscript) {
-            const text = interimTranscript.trim();
+            const raw = interimTranscript.trim();
+            const text = correctSpeech(raw);
             if (text.length > 3 && text !== lastProcessedText) {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
@@ -2001,18 +2120,64 @@ function stopListening() {
     document.getElementById('listenTopic').classList.remove('has-topic');
 }
 
+// Fuzzy match: true if words are within 1 edit distance (swap, insert, delete, or replace 1 char)
+function fuzzyMatch(a, b) {
+    if (a === b) return true;
+    const lenA = a.length, lenB = b.length;
+    if (Math.abs(lenA - lenB) > 1) return false;
+
+    // Quick check: if same length, allow 1 character difference
+    if (lenA === lenB) {
+        let diffs = 0;
+        for (let i = 0; i < lenA; i++) {
+            if (a[i] !== b[i]) diffs++;
+            if (diffs > 1) return false;
+        }
+        return diffs === 1;
+    }
+
+    // Different lengths: allow 1 insertion/deletion
+    const shorter = lenA < lenB ? a : b;
+    const longer = lenA < lenB ? b : a;
+    let diffs = 0, si = 0;
+    for (let li = 0; li < longer.length; li++) {
+        if (shorter[si] !== longer[li]) {
+            diffs++;
+            if (diffs > 1) return false;
+        } else {
+            si++;
+        }
+    }
+    return true;
+}
+
 function analyseAndSuggest(text, isFinal) {
     if (!app.currentContext) return;
     const lower = text.toLowerCase();
 
-    // 1. Detect TOPICS from topic clouds
+    // 1. Detect TOPICS from topic clouds (with fuzzy matching for misheard words)
     detectedKeywords = [];
     const topicScores = {};
+    const lowerWords = lower.split(/\s+/).map(w => w.replace(/[.,!?;:'"]/g, ''));
+
     for (const [topic, words] of Object.entries(TOPIC_CLOUDS)) {
         for (const w of words) {
+            // Exact match (standard)
             if (lower.includes(w)) {
                 detectedKeywords.push({word:w, topic});
                 topicScores[topic] = (topicScores[topic]||0) + 1;
+            } else {
+                // Fuzzy match: check if any spoken word is within 1 edit distance of topic keyword
+                // Only for words 4+ chars (short words have too many false positives)
+                if (w.length >= 4) {
+                    for (const spoken of lowerWords) {
+                        if (spoken.length >= 4 && fuzzyMatch(spoken, w)) {
+                            detectedKeywords.push({word:w, topic, fuzzy:true});
+                            topicScores[topic] = (topicScores[topic]||0) + 0.7; // Slightly less weight than exact
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -2020,6 +2185,7 @@ function analyseAndSuggest(text, isFinal) {
     // Get top 2 topics from THIS utterance
     const rankedTopics = Object.entries(topicScores).sort((a,b) => b[1]-a[1]);
     const utteranceTopic = rankedTopics[0]?.[0] || null;
+    const utteranceStrength = rankedTopics[0]?.[1] || 0;
     const secondaryTopic = rankedTopics[1]?.[0] || null;
 
     // 2. CONVERSATION MEMORY — remember topics and extract subject nouns
@@ -2028,11 +2194,19 @@ function analyseAndSuggest(text, isFinal) {
             .filter(k => k.topic === utteranceTopic)
             .map(k => k.word)
             .filter(w => w.length > 2 && !['the','and','was','were','had','have','has','did','does','can','could','will','would','for','but','not','you','your','how','what','why'].includes(w));
-        conversationMemory.remember(utteranceTopic, subjectWords, rankedTopics[0][1]);
+        conversationMemory.remember(utteranceTopic, subjectWords, utteranceStrength);
     }
 
-    // Use MEMORY topic if current utterance has no topic (e.g. "Did you enjoy it?")
-    const primaryTopic = utteranceTopic || conversationMemory.getActiveTopic();
+    // MEMORY ANCHORING: If memory has a topic and new detection is weak (1 keyword),
+    // prefer the memory topic. Prevents "hot or cold" jumping from food→weather.
+    const memoryTopic = conversationMemory.getActiveTopic();
+    let primaryTopic;
+    if (utteranceTopic && memoryTopic && utteranceTopic !== memoryTopic && utteranceStrength <= 1) {
+        // Weak new detection + strong memory = stick with memory
+        primaryTopic = memoryTopic;
+    } else {
+        primaryTopic = utteranceTopic || memoryTopic;
+    }
     if (primaryTopic) detectedTopic = primaryTopic;
 
     // Get subject noun for slot-filling

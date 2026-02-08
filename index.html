@@ -1348,6 +1348,14 @@ const TOPIC_CLOUDS = {
     // Emotional/Sensory
     sensory:   ['loud','noise','smell','bright','light','touch','hot','cold','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering'],
     feelings:  ['happy','sad','angry','scared','worried','excited','nervous','calm','frustrated','proud','embarrassed','lonely','bored','confused','anxious','stressed','overwhelmed','grateful','hopeful','disappointed'],
+
+    // Additional Topics
+    holidays:  ['holiday','vacation','christmas','easter','birthday','party','celebrate','present','gift','cake','special','occasion','anniversary','new year','halloween','weekend','camp','trip','adventure','travel'],
+    technology:['computer','laptop','phone','tablet','ipad','app','download','internet','wifi','email','website','screen','charge','battery','broken','update','password','headphones','bluetooth','printer'],
+    money:     ['money','dollar','cost','price','buy','pay','save','spend','expensive','cheap','afford','wallet','pocket money','allowance','change','coin','note','bank'],
+    cooking:   ['cook','bake','recipe','ingredient','mix','stir','oven','microwave','fridge','hot','boil','fry','chop','peel','serve','plate','bowl','spoon','fork','knife'],
+    time:      ['time','clock','hour','minute','late','early','soon','later','tomorrow','yesterday','today','morning','afternoon','evening','night','weekend','week','month','hurry','wait','schedule','appointment'],
+    appearance:['look','wear','shirt','pants','shoes','hat','dress','jacket','uniform','hair','glasses','bag','backpack','watch','jewellery','outfit','comfortable','smart','casual'],
 };
 
 // QUESTION PATTERNS — detect what TYPE of response is needed
@@ -1427,33 +1435,33 @@ const CONTEXTUAL_RESPONSES = {
     // ---- WEATHER ----
     'weather:opinion':    ["I love this weather.","It's too hot.","It's too cold.","I hope it doesn't rain.","Perfect day to go outside."],
 
-    // ---- MATHS ----
-    'math:opinion':       ["That theorem is fascinating.","I see a pattern here.","That's an elegant solution.","This reminds me of another problem.","I think there's a simpler method.","The proof is beautiful."],
-    'math:review':        ["I enjoyed that problem.","It was challenging but fun.","I solved it a different way.","That was too easy.","I need to think about it more.","The patterns were interesting."],
-    'math:status':        ["I've finished the problems.","Still working on it.","I'm stuck on one.","I need a hint.","I found the answer.","Let me check my working."],
-    'math:explanation':   ["I found a pattern.","I used the formula.","I worked backwards.","Let me show my method.","I tried a different approach.","It uses the same principle as before."],
-    'math:preference':    ["Algebra is my favourite.","I love geometry.","Number theory is fascinating.","I prefer problem-solving.","Patterns are the best part."],
-    'math:choice':        ["Algebra, please.","I want to try geometry.","Something challenging.","Can we explore patterns?","Let me pick a harder one."],
-    'math:yesno':         ["Yes, I understand.","No, can you explain again?","I think so.","Almost, let me think.","Yes, that makes sense now."],
+    // ---- MATHS (Ryan's passion — responses reflect advanced understanding) ----
+    'math:opinion':       ["That theorem is genuinely fascinating.","I can see an elegant pattern emerging here.","That's a remarkably elegant solution.","This reminds me of a similar problem — there's a connection.","I think there's a more efficient method.","The proof is beautiful in its simplicity.","The symmetry here is extraordinary.","I'd approach it differently, actually."],
+    'math:review':        ["I found that problem genuinely stimulating.","It was challenging, which is exactly what I wanted.","I solved it using a different approach entirely.","That was too straightforward — I'd like something harder.","I need more time to fully explore the implications.","The patterns within the solution were fascinating.","I had an insight halfway through that changed my approach."],
+    'math:status':        ["I've completed the problems.","Still working through it — the logic is intricate.","I'm stuck on one particular step.","I'd appreciate a hint, if possible.","I've found the solution — and it's elegant.","Let me verify my working first.","Almost there — I can see the pattern forming."],
+    'math:explanation':   ["I identified a recurring pattern.","I applied the formula, but then found a shortcut.","I worked backwards from the conclusion.","Let me walk you through my reasoning.","I tried an alternative approach that proved more efficient.","It applies the same principle we explored previously.","The key insight is in the underlying structure."],
+    'math:preference':    ["Algebra is my absolute favourite — the patterns are extraordinary.","I find geometry deeply satisfying.","Number theory is endlessly fascinating.","I prefer complex problem-solving over routine calculations.","Pattern recognition is where the real beauty lies.","I'm particularly drawn to proofs."],
+    'math:choice':        ["Algebra, definitely.","I'd like to explore geometry today.","Something genuinely challenging, please.","Can we investigate patterns?","I want to attempt something beyond my current level.","Proof-based work would be excellent."],
+    'math:yesno':         ["Yes, I understand the concept completely.","Not entirely — could you elaborate on that step?","I think so, but I'd like to verify.","Almost — give me a moment to process.","Yes, that makes perfect sense now.","I understand the principle, but not the application."],
 
-    // ---- ENGLISH / STORIES ----
-    'english:opinion':    ["The character development is strong.","The plot twist was unexpected.","The writing style is engaging.","The metaphor works really well.","I think the theme is about belonging.","The author chose interesting words."],
-    'english:review':     ["I really enjoyed it.","The ending was surprising.","It made me think differently.","Some parts were confusing.","I want to read more by this author.","The best part was the dialogue."],
-    'english:preference': ["I prefer fiction.","I like stories with plot twists.","I enjoy descriptive writing.","Poetry is interesting.","I like characters with depth."],
-    'english:choice':     ["I want to read fiction.","Can we analyse this passage?","I'd like to write something.","Let's discuss the characters."],
-    'english:status':     ["I've finished reading it.","I'm halfway through.","I haven't started yet.","I need more time.","I've written the first paragraph."],
+    // ---- ENGLISH / STORIES (Ryan's authorship dreams) ----
+    'english:opinion':    ["The character development is remarkably nuanced.","The plot twist was genuinely unexpected — I didn't see it coming.","The writing style is quite engaging.","That metaphor works on multiple levels.","I think the underlying theme is about belonging and identity.","The author's word choice is deliberately evocative.","There's a parallel structure here that's quite sophisticated."],
+    'english:review':     ["I thoroughly enjoyed it — the narrative was compelling.","The ending was surprising but satisfying.","It challenged my perspective, which I appreciate.","Some passages were confusing, but deliberately so, I think.","I'd like to read more by this author.","The dialogue felt authentic and revealing.","The imagery was vivid and purposeful."],
+    'english:preference': ["I'm drawn to fiction with complex characters.","Stories with unexpected plot twists captivate me.","I appreciate descriptive, evocative writing.","Poetry has an interesting economy of language.","I prefer characters with genuine psychological depth.","I find unreliable narrators fascinating."],
+    'english:choice':     ["I'd like to read fiction today.","Can we analyse this particular passage?","I'd like to work on my own writing.","Let's discuss the characters' motivations.","I want to explore the narrative structure."],
+    'english:status':     ["I've finished reading it — I have thoughts.","I'm approximately halfway through.","I haven't started yet, but I'm keen to.","I need more time to properly absorb it.","I've drafted the first paragraph.","I'm revising what I've written."],
 
     // ---- SCIENCE ----
-    'science:opinion':    ["That experiment was cool.","The hypothesis makes sense.","I think the results show a pattern.","The theory is fascinating.","I'd like to test something different."],
-    'science:review':     ["The experiment worked well.","The results were surprising.","I learned something new.","It was harder than I expected."],
-    'science:yesno':      ["Yes, I understand the concept.","No, can you explain that again?","I think I get it.","That makes sense."],
+    'science:opinion':    ["That experiment was genuinely fascinating.","The hypothesis is logical and testable.","I think the results reveal an interesting pattern.","The underlying theory is elegant.","I'd like to test a different variable.","The methodology could be more rigorous."],
+    'science:review':     ["The experiment yielded unexpected results.","The results were surprising — I need to reconsider my hypothesis.","I learned something that challenged my assumptions.","It was more complex than I initially anticipated.","The data tells an interesting story."],
+    'science:yesno':      ["Yes, I grasp the concept.","Not entirely — could you explain the mechanism?","I think I understand the principle.","That's logical, yes.","I understand the theory but I'm uncertain about the application."],
 
-    // ---- SCHOOL ----
-    'school:status':      ["I've done my homework.","Not yet.","Almost finished.","I need help with it.","I forgot about it.","It's due tomorrow.","I handed it in."],
-    'school:review':      ["It was a good day.","School was okay.","I had a hard day.","The lesson was interesting.","I learned something cool.","It was boring today.","Lunchtime was fun."],
-    'school:opinion':     ["I think the teacher explained it well.","The assignment is interesting.","I'm not sure about the topic.","I'd rather work on maths.","The project sounds fun."],
-    'school:yesno':       ["Yes, we have homework.","No, nothing due.","I think so.","I'm not sure, let me check.","Yes, I'm ready for the test.","No, I need more study time."],
-    'school:preference':  ["Maths is my best subject.","I enjoy science class.","English is getting more interesting.","I prefer working alone.","Group work can be fun."],
+    // ---- SCHOOL (practical but still Ryan's voice) ----
+    'school:status':      ["I've completed my homework.","Not yet, I'm afraid.","Almost finished — just one more section.","I could use some help with the last part.","I forgot about it, honestly.","It's due tomorrow — I'll prioritise it.","I've submitted it already."],
+    'school:review':      ["It was a productive day, actually.","School was adequate.","I had a challenging day.","The lesson was genuinely engaging.","I learned something fascinating.","It was rather unstimulating today, honestly.","The best part was the discussion."],
+    'school:opinion':     ["I thought the teacher explained it quite effectively.","The assignment is actually quite interesting.","I'm not entirely sure about the topic.","I'd rather be working on mathematics.","The project has real potential.","The approach could be more rigorous."],
+    'school:yesno':       ["Yes, we have homework due.","No, nothing pending.","I believe so, but I'd need to check.","I'm not entirely certain.","Yes, I feel prepared for the test.","No, I'd benefit from additional study time."],
+    'school:preference':  ["Mathematics is undoubtedly my strongest subject.","I find science increasingly interesting.","English is growing on me.","I work more effectively independently.","Collaborative work can be surprisingly productive."],
 
     // ---- GAMING ----
     'gaming:review':      ["That was an amazing play!","I almost beat the level.","The game is really challenging.","I discovered something new.","That boss was so hard.","My best score ever."],
@@ -1490,27 +1498,170 @@ const CONTEXTUAL_RESPONSES = {
     'feelings:explanation':["I'm not sure why I feel this way.","Something happened earlier.","It's been building up.","I think I'm just tired.","It's hard to explain."],
 
     // ---- SENSORY ----
-    'sensory:wellbeing':  ["The noise is too much.","It's too bright in here.","I need my headphones.","Can we go somewhere quieter?","I need a break from this."],
-    'sensory:yesno':      ["Yes, it's bothering me.","No, I'm okay.","A little bit.","It's getting worse.","I can manage."],
+    'sensory:wellbeing':  ["The noise level is genuinely uncomfortable.","It's far too bright in here.","I need my headphones, please.","Can we relocate somewhere quieter?","I need a break from this sensory input."],
+    'sensory:yesno':      ["Yes, it's quite bothering me.","No, I'm managing.","Somewhat, but it's tolerable.","It's getting progressively worse.","I can cope for now."],
+
+    // ---- HOLIDAYS / EVENTS ----
+    'holidays:review':    ["I had a genuinely wonderful time.","It was a bit overwhelming, to be honest.","The best part was being with everyone.","I enjoyed it more than I expected.","I found the crowds a bit much.","It was a memorable experience."],
+    'holidays:yesno':     ["Yes, I'm looking forward to it.","I'm a bit nervous, actually.","I hope it won't be too loud.","That sounds like a great plan.","Can we have a quiet space available?"],
+    'holidays:choice':    ["I'd like a quiet celebration.","Something special but not too big.","Can we keep it small?","I'd enjoy an outing.","Something at home would be nice."],
+    'holidays:preference':["I prefer smaller gatherings.","I enjoy the traditions.","The food is my favourite part.","I like giving presents more than receiving them."],
+
+    // ---- TECHNOLOGY ----
+    'technology:status':  ["It's fully charged.","The battery is running low.","It's not working properly.","I need the wifi password.","The app needs updating.","It's frozen — I need help."],
+    'technology:yesno':   ["Yes, it's working.","No, there's a problem.","I think so, but I'm not sure.","It was working earlier.","Can you help me fix it?"],
+    'technology:choice':  ["I'd like to use the iPad.","Can I use the computer?","I need my headphones.","The tablet, please."],
+    'technology:opinion': ["This app is really well-designed.","The interface could be more intuitive.","That's a useful feature.","I think it needs an update."],
+
+    // ---- MONEY ----
+    'money:yesno':        ["Yes, I can afford it.","No, it's too expensive.","I'd need to save up for that.","I have enough pocket money.","I'm not sure — how much is it?"],
+    'money:opinion':      ["I think that's good value.","It seems overpriced.","I'd rather save my money.","It's worth the investment."],
+    'money:choice':       ["The cheaper option is fine.","I'd prefer the better quality one.","Can I think about it?","I'd rather save for something else."],
+
+    // ---- COOKING ----
+    'cooking:yesno':      ["Yes, I'd like to help cook.","Not today, thanks.","Can I stir?","I'd prefer to watch.","Is it ready yet?"],
+    'cooking:status':     ["It's almost ready.","I've finished my part.","I need help with this step.","The oven is preheated.","I'm still preparing."],
+    'cooking:choice':     ["I'd like to make pasta.","Can we bake something?","Something straightforward, please.","I want to try the recipe we saw."],
+
+    // ---- TIME / SCHEDULING ----
+    'time:status':        ["I'm ready.","I need more time.","I'm running a bit behind.","I've got plenty of time.","I'll be ready shortly."],
+    'time:yesno':         ["Yes, I know what time it is.","No, what time is it?","I think we're running late.","There's still time.","We should leave soon."],
+    'time:specific':      ["What time do we need to leave?","How long will it take?","When is it happening?","How much time do I have?"],
+
+    // ---- APPEARANCE / CLOTHES ----
+    'appearance:choice':  ["The blue shirt.","Something comfortable.","My favourite outfit.","Whatever's clean.","Can I wear casual clothes?"],
+    'appearance:yesno':   ["Yes, I'm dressed.","Not yet — I'm choosing.","These clothes feel uncomfortable.","I like this outfit.","Does this look okay?"],
+    'appearance:opinion': ["I think this looks good.","I'm not comfortable in this.","I prefer something more casual.","The fabric feels strange."],
 };
 
-// GENERIC RESPONSES — used when topic detected but no matrix match
+// ============================================================
+// CONVERSATION MEMORY — maintains topic context across utterances
+// ============================================================
+const conversationMemory = {
+    recentTopics: [],      // [{topic, keywords, time, confidence}] — last 60 seconds
+    subjectNouns: [],       // ['beach','homework','pizza'] — detected subject words for slot-filling
+    activeTopicDecay: 60000, // 60 seconds — how long a topic stays "active"
+
+    // Add a detected topic to memory
+    remember(topic, keywords, confidence) {
+        const now = Date.now();
+        this.recentTopics.push({topic, keywords, time:now, confidence});
+        // Extract subject nouns (nouns that could fill a slot)
+        keywords.forEach(kw => {
+            if (!this.subjectNouns.includes(kw)) this.subjectNouns.push(kw);
+        });
+        if (this.subjectNouns.length > 10) this.subjectNouns = this.subjectNouns.slice(-10);
+        this.cleanup();
+    },
+
+    // Remove topics older than decay window
+    cleanup() {
+        const cutoff = Date.now() - this.activeTopicDecay;
+        this.recentTopics = this.recentTopics.filter(t => t.time > cutoff);
+    },
+
+    // Get the best topic from memory (even if current utterance has none)
+    getActiveTopic() {
+        this.cleanup();
+        if (this.recentTopics.length === 0) return null;
+        // Score topics by recency × confidence × frequency
+        const topicScores = {};
+        this.recentTopics.forEach(t => {
+            const age = (Date.now() - t.time) / 1000; // seconds ago
+            const recencyWeight = Math.max(0, 1 - age / 60); // 1.0 at 0s, 0.0 at 60s
+            topicScores[t.topic] = (topicScores[t.topic] || 0) + (t.confidence * recencyWeight);
+        });
+        const best = Object.entries(topicScores).sort((a,b) => b[1]-a[1])[0];
+        return best ? best[0] : null;
+    },
+
+    // Get the most recent subject noun for slot-filling
+    getSubject() {
+        return this.subjectNouns.length > 0 ? this.subjectNouns[this.subjectNouns.length - 1] : null;
+    },
+
+    // Get all recent subjects for richer slot-filling
+    getRecentSubjects() {
+        return [...this.subjectNouns].reverse().slice(0, 5);
+    },
+
+    // Clear on context change
+    clear() {
+        this.recentTopics = [];
+        this.subjectNouns = [];
+    }
+};
+
+// ============================================================
+// SLOT-FILLING TEMPLATES — inject subject nouns into responses
+// ============================================================
+// Template format: {s} = primary subject, {S} = capitalised subject
+const SLOT_TEMPLATES = {
+    review: [
+        "The {s} was quite enjoyable.",
+        "I found the {s} rather fascinating.",
+        "The {s} wasn't quite what I expected.",
+        "I thought the {s} was brilliant.",
+        "The {s} could have been better, to be honest.",
+        "I was pleasantly surprised by the {s}.",
+        "The {s} was somewhat disappointing.",
+        "I'd rate the {s} quite highly.",
+    ],
+    opinion: [
+        "I think the {s} is genuinely interesting.",
+        "I have mixed feelings about the {s}.",
+        "The {s} raises some good points.",
+        "I'm not entirely convinced about the {s}.",
+        "The {s} is more complex than it seems.",
+        "I reckon the {s} has real potential.",
+    ],
+    preference: [
+        "I'm quite fond of the {s}.",
+        "The {s} isn't really my thing.",
+        "I'd choose the {s} over the alternatives.",
+        "I used to like the {s} more.",
+    ],
+    yesno: [
+        "Yes, the {s} was good.",
+        "No, I wasn't keen on the {s}.",
+        "The {s}? Absolutely.",
+        "The {s}? Not particularly.",
+    ],
+    status: [
+        "I've finished the {s}.",
+        "I'm still working on the {s}.",
+        "I haven't started the {s} yet.",
+        "The {s} is almost done.",
+    ],
+    explanation: [
+        "The {s} works because of the underlying pattern.",
+        "I approached the {s} from a different angle.",
+        "The {s} connects to what we discussed before.",
+    ],
+};
+
+function fillSlots(templates, subject) {
+    if (!subject || subject.length < 2) return [];
+    return templates.map(t => t.replace(/\{s\}/g, subject).replace(/\{S\}/g, subject[0].toUpperCase() + subject.slice(1)));
+}
+
+// GENERIC RESPONSES — Ryan's voice: sophisticated, analytical, Australian
 const GENERIC_RESPONSES = {
-    greeting:   ["I'm feeling good today.","I'm a bit tired.","Not bad, thanks. You?","Yeah, going alright.","I'm okay.","Can't complain.","I'm a bit frustrated right now."],
-    yesno:      ["Yeah, for sure.","No thanks, maybe later.","Maybe, I'll think about it.","I'm not sure about that.","Sounds good.","Absolutely.","I don't think so.","Not right now."],
-    opinion:    ["I think that's a great idea.","I'm not convinced about that.","Fair enough.","I reckon that could work.","It depends on the situation.","I need to think about it.","There's more to it than that."],
-    preference: ["I like how that works.","That's not really my thing.","That's a good point.","I hadn't thought of it that way.","I prefer something else."],
-    review:     ["It was good.","Not bad.","I really enjoyed it.","It could have been better.","It was okay.","One of the best."],
-    narrative:  ["I've been thinking about something.","Something happened.","I had a good day today.","Tell me more about that.","It's a long story."],
-    wellbeing:  ["I'm okay.","Not great.","I'm managing.","Thanks for asking.","I could be better.","I'm doing well."],
-    status:     ["Done.","Not yet.","Working on it.","Almost.","I need help.","Give me a minute."],
-    specific:   ["I'm not sure.","Give me a moment to think.","Can you ask me a yes or no question?","I'd need to check."],
-    explanation:["It depends on the situation.","There's more to it than that.","I reckon so.","Can we look at it from a different angle?","It's hard to explain.","Let me think about how to say this."],
-    choice:     ["The first one.","The second one.","That one, please.","I don't mind.","You choose for me.","Can I see the options?","I need a moment to decide."],
-    food_choice:["Pizza, please.","Pasta would be good.","Something simple.","I'm not fussy, you choose.","Can I see what's available?"],
-    drink_choice:["Water, please.","Juice would be good.","Hot chocolate, please.","Something cold."],
-    activity_choice:["I want to play a game.","Can we watch something?","Can I use the iPad?","Something fun.","I'd rather stay in."],
-    place_choice:["I'd like to go to the park.","I want to stay home.","Somewhere quiet.","I don't mind, you pick."],
+    greeting:   ["I'm doing well, thanks for asking.","I'm a bit tired today, honestly.","Not bad at all. You?","Yeah, going alright.","I'm feeling pretty good.","Can't complain.","I'm a bit frustrated, but I'll manage.","It's been an interesting day."],
+    yesno:      ["Yeah, for sure.","No thanks, maybe another time.","I'll need to think about that.","I'm not entirely sure.","Sounds good to me.","Absolutely.","I don't think so, no.","Not at the moment.","That depends on the circumstances."],
+    opinion:    ["I think that's a genuinely good idea.","I'm not entirely convinced, to be honest.","Fair enough — that's a reasonable perspective.","I reckon that could work.","It depends on the circumstances.","I'd need to consider it further.","There's more nuance to it than that.","That's an interesting way to look at it."],
+    preference: ["That's something I genuinely enjoy.","That's not really my thing, if I'm honest.","That's a fair point, actually.","I hadn't considered it from that angle.","I'd prefer something different.","I can see the appeal."],
+    review:     ["I found it quite enjoyable.","It wasn't bad at all.","I genuinely enjoyed that.","It could have been better, to be honest.","It was adequate.","One of the better ones I've experienced.","It exceeded my expectations.","I have mixed feelings about it."],
+    narrative:  ["I've been reflecting on something.","Something noteworthy happened.","I had a rather good day, actually.","Tell me more about that — I'm interested.","It's a bit of a long story.","Something's been on my mind."],
+    wellbeing:  ["I'm managing, thanks.","Not my best day, honestly.","I'm coping well enough.","I appreciate you asking.","I could be better, but I'm okay.","I'm doing well, actually.","I'm working through some things."],
+    status:     ["Done and dusted.","Not yet, I'm afraid.","I'm working on it.","Almost there.","I could use some help with that.","Give me a moment.","I'll get to it shortly."],
+    specific:   ["I'm not certain, let me think.","Give me a moment to formulate my answer.","Could you ask me as a yes or no question?","I'd need to check on that.","That's a good question — I'm not sure."],
+    explanation:["It depends on the context.","There's more complexity to it than that.","I reckon so, based on what I've observed.","Can we examine it from a different perspective?","It's difficult to articulate, but I'll try.","Let me think about how to express this.","The reasoning is quite logical, actually."],
+    choice:     ["The first option, I think.","The second one appeals to me more.","That one, please.","I don't have a strong preference.","You choose — I trust your judgement.","Could I see the options first?","I need a moment to decide.","Both have their merits."],
+    food_choice:["Pizza would be excellent.","Pasta sounds good to me.","Something straightforward, please.","I'm not fussy — you decide.","Can I see what's available?","I'd like what I had last time."],
+    drink_choice:["Water, please.","Juice would be lovely.","A hot chocolate would be great.","Something cold, please.","I'm alright for now, thanks."],
+    activity_choice:["I'd like to play a game.","Can we watch something?","I'd like to use the iPad.","Something engaging would be good.","I'd rather stay in, if that's okay.","Something quieter, perhaps."],
+    place_choice:["The park would be nice.","I'd prefer to stay home.","Somewhere quiet.","I don't mind — you pick.","Somewhere with a good atmosphere."],
 };
 
 function initSpeechRecognition() {
@@ -1610,7 +1761,7 @@ function analyseAndSuggest(text, isFinal) {
     if (!app.currentContext) return;
     const lower = text.toLowerCase();
 
-    // 1. Detect TOPICS from topic clouds (can match multiple)
+    // 1. Detect TOPICS from topic clouds
     detectedKeywords = [];
     const topicScores = {};
     for (const [topic, words] of Object.entries(TOPIC_CLOUDS)) {
@@ -1622,19 +1773,34 @@ function analyseAndSuggest(text, isFinal) {
         }
     }
 
-    // Get top 2 topics (conversations often span multiple)
+    // Get top 2 topics from THIS utterance
     const rankedTopics = Object.entries(topicScores).sort((a,b) => b[1]-a[1]);
-    const primaryTopic = rankedTopics[0]?.[0] || null;
+    const utteranceTopic = rankedTopics[0]?.[0] || null;
     const secondaryTopic = rankedTopics[1]?.[0] || null;
+
+    // 2. CONVERSATION MEMORY — remember topics and extract subject nouns
+    if (utteranceTopic) {
+        const subjectWords = detectedKeywords
+            .filter(k => k.topic === utteranceTopic)
+            .map(k => k.word)
+            .filter(w => w.length > 2 && !['the','and','was','were','had','have','has','did','does','can','could','will','would','for','but','not','you','your','how','what','why'].includes(w));
+        conversationMemory.remember(utteranceTopic, subjectWords, rankedTopics[0][1]);
+    }
+
+    // Use MEMORY topic if current utterance has no topic (e.g. "Did you enjoy it?")
+    const primaryTopic = utteranceTopic || conversationMemory.getActiveTopic();
     if (primaryTopic) detectedTopic = primaryTopic;
 
-    // 2. Detect QUESTION TYPE
+    // Get subject noun for slot-filling
+    const subject = conversationMemory.getSubject();
+
+    // 2b. Detect QUESTION TYPE
     let questionType = null;
     for (const q of QUESTION_PATTERNS) {
         if (q.pattern.test(lower)) { questionType = q.type; break; }
     }
 
-    // 3. Build contextual suggestions using Topic × Question matrix
+    // 3. Build contextual suggestions
     const scores = [];
     const alreadyAdded = new Set();
 
@@ -1642,12 +1808,10 @@ function analyseAndSuggest(text, isFinal) {
         responses.forEach(text => {
             if (alreadyAdded.has(text)) return;
             alreadyAdded.add(text);
-            // Check if card exists in current context
             const existing = (app.cards || []).find(c => c.text === text);
             if (existing) {
                 scores.push({card:existing, score:baseScore, source});
             } else {
-                // Check all contexts
                 let found = null;
                 for (const ctxId of Object.keys(CARD_DATA)) {
                     const match = CARD_DATA[ctxId].cards.find(c => c.text === text);
@@ -1662,13 +1826,18 @@ function analyseAndSuggest(text, isFinal) {
         });
     }
 
-    // Priority 1: EXACT matrix match (topic + question type) — most contextual
+    // Priority 0: SLOT-FILLED responses (most contextual — uses the actual subject word)
+    if (subject && questionType && SLOT_TEMPLATES[questionType]) {
+        const slotFilled = fillSlots(SLOT_TEMPLATES[questionType], subject);
+        addResponses(slotFilled.slice(0,4), 18, '✨ contextual');
+    }
+
+    // Priority 1: EXACT matrix match (topic + question type)
     if (primaryTopic && questionType) {
         const matrixKey = primaryTopic + ':' + questionType;
         if (CONTEXTUAL_RESPONSES[matrixKey]) {
-            addResponses(CONTEXTUAL_RESPONSES[matrixKey], 15, '🎯 contextual');
+            addResponses(CONTEXTUAL_RESPONSES[matrixKey], 15, '🎯 match');
         }
-        // Also try secondary topic
         if (secondaryTopic) {
             const matrixKey2 = secondaryTopic + ':' + questionType;
             if (CONTEXTUAL_RESPONSES[matrixKey2]) {
@@ -1677,7 +1846,15 @@ function analyseAndSuggest(text, isFinal) {
         }
     }
 
-    // Priority 2: Topic-only match (any question type for this topic)
+    // Priority 1b: MEMORY matrix match — use remembered topic if current has none
+    if (!utteranceTopic && primaryTopic && questionType) {
+        const memKey = primaryTopic + ':' + questionType;
+        if (CONTEXTUAL_RESPONSES[memKey]) {
+            addResponses(CONTEXTUAL_RESPONSES[memKey], 13, '🧠 remembered');
+        }
+    }
+
+    // Priority 2: Topic-only match
     if (primaryTopic && scores.length < 4) {
         for (const [key, responses] of Object.entries(CONTEXTUAL_RESPONSES)) {
             if (key.startsWith(primaryTopic + ':') && responses.length) {
@@ -1693,7 +1870,7 @@ function analyseAndSuggest(text, isFinal) {
         }
     }
 
-    // Priority 4: Score existing cards by keyword match
+    // Priority 4: Keyword-matched cards in current context
     const keywordWords = detectedKeywords.map(k => k.word);
     const allCards = (app.cards && app.cards.length) ? app.cards : getCardsForContext(app.currentContext);
     allCards.forEach(card => {
@@ -1703,7 +1880,6 @@ function analyseAndSuggest(text, isFinal) {
         for (const kw of keywordWords) {
             if (cardLower.includes(kw)) score += 3;
         }
-        // Phase 2D sequence bonus
         if (lastSpokenKey) {
             try {
                 const d = loadData();
@@ -1717,7 +1893,7 @@ function analyseAndSuggest(text, isFinal) {
         }
     });
 
-    // Priority 5: Cross-context cards for detected topic
+    // Priority 5: Cross-context cards
     if (primaryTopic && primaryTopic !== app.currentContext && CARD_DATA[primaryTopic]) {
         CARD_DATA[primaryTopic].cards.slice(0,8).forEach(card => {
             if (alreadyAdded.has(card.text)) return;
@@ -1732,7 +1908,7 @@ function analyseAndSuggest(text, isFinal) {
     }
 
     scores.sort((a,b) => b.score - a.score);
-    suggestedPhrases = scores.slice(0,8); // Show up to 8 for more options
+    suggestedPhrases = scores.slice(0,8);
 
     // 4. Update UI
     updateTopicDisplay();
@@ -1748,6 +1924,13 @@ function updateTopicDisplay() {
         const topicName = detectedTopic ? (CARD_DATA[detectedTopic]?.label || detectedTopic) : 'General';
         const kws = detectedKeywords.slice(0,3).map(k => k.word).join(', ');
         topicEl.textContent = `Topic: ${topicName} · "${kws}"`;
+        topicEl.classList.add('has-topic');
+    } else if (conversationMemory.getActiveTopic()) {
+        // No keywords in THIS utterance, but memory has a topic
+        const memTopic = conversationMemory.getActiveTopic();
+        const memSubject = conversationMemory.getSubject();
+        const topicName = CARD_DATA[memTopic]?.label || memTopic;
+        topicEl.textContent = `🧠 Remembering: ${topicName}${memSubject ? ' · "'+memSubject+'"' : ''}`;
         topicEl.classList.add('has-topic');
     }
 }
@@ -2176,6 +2359,7 @@ const app = {
         conversationTranscript = [];
         detectedKeywords = [];
         suggestedPhrases = [];
+        conversationMemory.clear();
         this.renderHome();
     },
 

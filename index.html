@@ -693,6 +693,206 @@
             }
         }
 
+        /* ========== SETTINGS SCREEN ========== */
+        .settings-scroll {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 24px 20px calc(var(--safe-bottom) + 80px);
+        }
+
+        .settings-section {
+            margin-bottom: 28px;
+        }
+
+        .settings-section-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 20px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .settings-section-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .voice-group-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            margin: 18px 0 10px;
+        }
+
+        .voice-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .voice-option:active {
+            transform: scale(0.98);
+        }
+
+        .voice-option.selected {
+            border-color: var(--accent-primary);
+            background: rgba(108, 99, 255, 0.08);
+        }
+
+        .voice-radio {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--text-muted);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .voice-option.selected .voice-radio {
+            border-color: var(--accent-primary);
+        }
+
+        .voice-radio-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .voice-option.selected .voice-radio-dot {
+            opacity: 1;
+        }
+
+        .voice-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .voice-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .voice-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .voice-preview-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .voice-preview-btn:active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+            transform: scale(0.9);
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+        }
+
+        .speed-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            min-width: 50px;
+        }
+
+        .speed-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-elevated);
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        .speed-value {
+            font-size: 14px;
+            color: var(--accent-glow);
+            font-weight: 700;
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .settings-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            padding-bottom: var(--safe-bottom);
+            z-index: 50;
+        }
+
+        .settings-home-btn {
+            width: 100%;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            color: var(--accent-glow);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .settings-home-btn:active {
+            background: rgba(108, 99, 255, 0.08);
+        }
+
         /* ========== INSTALL PROMPT ========== */
         .install-banner {
             display: none;
@@ -801,6 +1001,42 @@
 </div>
 
 <!-- ===== ADD PHRASE MODAL ===== -->
+
+<!-- ===== SETTINGS SCREEN ===== -->
+<div class="screen" id="settingsScreen">
+    <div class="settings-scroll">
+        <div class="settings-section">
+            <div class="settings-section-title">Choose Your Voice</div>
+            <div class="settings-section-desc">Pick the voice that sounds right for you. Tap ▶ to preview.</div>
+
+            <div class="voice-group-label">👨 Male Voices</div>
+            <div id="maleVoices"></div>
+
+            <div class="voice-group-label">👩 Female Voices</div>
+            <div id="femaleVoices"></div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-title">Speaking Speed</div>
+            <div class="settings-section-desc">Adjust how fast phrases are spoken.</div>
+            <div class="speed-control">
+                <div class="speed-label">Slow</div>
+                <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="1.3" step="0.05" value="0.92"
+                       oninput="app.updateSpeed(this.value)">
+                <div class="speed-value" id="speedValue">0.92×</div>
+                <div class="speed-label">Fast</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-bottom-nav">
+        <button class="settings-home-btn" onclick="app.goHome()">
+            🏠 Back to Home
+        </button>
+    </div>
+</div>
+
+<!-- ===== ADD PHRASE MODAL (original) ===== -->
 <div class="modal-overlay" id="addPhraseModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -989,7 +1225,7 @@ const CONTEXTS = [
     { id: "math",          icon: "🔢", label: "Talking about math" },
     { id: "gaming",        icon: "🎮", label: "Gaming / watching videos" },
     { id: "writing",       icon: "✍️", label: "I want to write", comingSoon: true },
-    { id: "settings",      icon: "⚙️", label: "Settings", comingSoon: true },
+    { id: "settings",      icon: "⚙️", label: "Settings" },
 ];
 
 // ============================================================
@@ -1024,23 +1260,110 @@ function addCustomCard(contextId, text, category) {
 }
 
 // ============================================================
-// TEXT-TO-SPEECH — prefer male voice
+// TEXT-TO-SPEECH — voice picker with male & female options
 // ============================================================
-let voices = [];
+let allVoices = [];
 let preferredVoice = null;
+let speechRate = 0.92;
+
+// Known English voice metadata (name substring → gender)
+const VOICE_GENDER = {
+    // Male
+    'Daniel': 'male', 'Gordon': 'male', 'James': 'male', 'Aaron': 'male',
+    'Arthur': 'male', 'Fred': 'male', 'Alex': 'male', 'Tom': 'male',
+    'Oliver': 'male', 'Rishi': 'male', 'Lee': 'male', 'Ralph': 'male',
+    'Albert': 'male', 'Eddy': 'male', 'Grandpa': 'male', 'Jacques': 'male',
+    'Evan': 'male', 'Liam': 'male', 'Malcolm': 'male',
+    // Female
+    'Samantha': 'female', 'Karen': 'female', 'Moira': 'female', 'Tessa': 'female',
+    'Fiona': 'female', 'Victoria': 'female', 'Serena': 'female', 'Kate': 'female',
+    'Zoe': 'female', 'Nicky': 'female', 'Allison': 'female', 'Ava': 'female',
+    'Susan': 'female', 'Sandy': 'female', 'Shelley': 'female', 'Martha': 'female',
+    'Joelle': 'female', 'Grandma': 'female', 'Reed': 'female',
+    'Matilda': 'female', 'Catherine': 'female', 'Veena': 'female',
+};
+
+function classifyVoice(voice) {
+    for (const [name, gender] of Object.entries(VOICE_GENDER)) {
+        if (voice.name.includes(name)) return gender;
+    }
+    // Heuristic: voice name contains common patterns
+    if (/\bMale\b/i.test(voice.name)) return 'male';
+    if (/\bFemale\b/i.test(voice.name)) return 'female';
+    return 'unknown';
+}
+
+function getEnglishVoices() {
+    return allVoices.filter(v => v.lang.startsWith('en'));
+}
 
 function initVoices() {
-    voices = speechSynthesis.getVoices();
-    // Prefer male English voices on iOS
-    const maleNames = ['Daniel', 'Gordon', 'James', 'Aaron', 'Arthur', 'Fred', 'Alex'];
-    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+    allVoices = speechSynthesis.getVoices();
+    // Load saved voice preference
+    const saved = loadCustomData().preferences;
+    if (saved.voiceRate) speechRate = saved.voiceRate;
 
-    for (const name of maleNames) {
-        const found = englishVoices.find(v => v.name.includes(name));
-        if (found) { preferredVoice = found; return; }
+    const english = getEnglishVoices();
+    if (saved.voiceName) {
+        const found = english.find(v => v.name === saved.voiceName);
+        if (found) { preferredVoice = found; renderVoiceSettings(); return; }
     }
-    // Fallback: any English voice
-    if (englishVoices.length > 0) preferredVoice = englishVoices[0];
+    // Default: first male voice
+    const maleNames = ['Daniel', 'Gordon', 'James', 'Aaron', 'Arthur', 'Fred', 'Alex'];
+    for (const name of maleNames) {
+        const found = english.find(v => v.name.includes(name));
+        if (found) { preferredVoice = found; break; }
+    }
+    if (!preferredVoice && english.length > 0) preferredVoice = english[0];
+    renderVoiceSettings();
+}
+
+function renderVoiceSettings() {
+    const english = getEnglishVoices();
+    const males = english.filter(v => classifyVoice(v) === 'male');
+    const females = english.filter(v => classifyVoice(v) === 'female');
+    const unknowns = english.filter(v => classifyVoice(v) === 'unknown');
+
+    // Add unknowns to males list for simplicity (often system default)
+    const maleList = [...males, ...unknowns];
+
+    const maleEl = document.getElementById('maleVoices');
+    const femaleEl = document.getElementById('femaleVoices');
+    if (!maleEl || !femaleEl) return;
+
+    maleEl.innerHTML = maleList.length > 0
+        ? maleList.map(v => voiceOptionHTML(v)).join('')
+        : '<div style="color:var(--text-muted);font-size:13px;padding:8px;">No male voices found on this device.</div>';
+
+    femaleEl.innerHTML = females.length > 0
+        ? females.map(v => voiceOptionHTML(v)).join('')
+        : '<div style="color:var(--text-muted);font-size:13px;padding:8px;">No female voices found on this device.</div>';
+
+    // Update speed slider
+    const slider = document.getElementById('speedSlider');
+    const val = document.getElementById('speedValue');
+    if (slider) { slider.value = speechRate; }
+    if (val) { val.textContent = speechRate.toFixed(2) + '×'; }
+}
+
+function voiceOptionHTML(voice) {
+    const selected = preferredVoice && preferredVoice.name === voice.name;
+    const shortLang = voice.lang.replace('en-', '').toUpperCase();
+    const region = { 'AU': 'Australia', 'GB': 'UK', 'US': 'US', 'IE': 'Ireland',
+                     'IN': 'India', 'ZA': 'South Africa', 'NZ': 'New Zealand',
+                     'SG': 'Singapore', 'SC': 'Scotland' }[shortLang] || shortLang;
+    const displayName = voice.name.replace(/com\.apple\.\w+\./g, '').replace(/Microsoft\s+/g, '');
+    const safeName = voice.name.replace(/'/g, "\\'");
+    return `
+        <div class="voice-option${selected ? ' selected' : ''}" onclick="app.selectVoice('${safeName}')">
+            <div class="voice-radio"><div class="voice-radio-dot"></div></div>
+            <div class="voice-info">
+                <div class="voice-name">${displayName}</div>
+                <div class="voice-detail">${region}${voice.localService ? '' : ' · Download'}</div>
+            </div>
+            <button class="voice-preview-btn" onclick="event.stopPropagation(); app.previewVoice('${safeName}')">▶</button>
+        </div>
+    `;
 }
 
 if ('speechSynthesis' in window) {
@@ -1053,7 +1376,7 @@ function speakText(text) {
     speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     if (preferredVoice) utt.voice = preferredVoice;
-    utt.rate = 0.92;
+    utt.rate = speechRate;
     utt.pitch = 0.95;
     utt.volume = 1;
     utt.onend = () => {
@@ -1124,9 +1447,13 @@ const app = {
             const count = CARD_DATA[ctx.id] ? CARD_DATA[ctx.id].cards.length : 0;
             const customCount = (loadCustomData().customCards[ctx.id] || []).length;
             const total = count + customCount;
+            let action;
+            if (ctx.comingSoon) action = `showToast('${ctx.label} — coming soon!')`;
+            else if (ctx.id === 'settings') action = `app.openSettings()`;
+            else action = `app.loadContext('${ctx.id}')`;
             return `
                 <div class="context-tile${ctx.comingSoon ? ' coming-soon' : ''}"
-                     onclick="${ctx.comingSoon ? `showToast('${ctx.label} — coming soon!')` : `app.loadContext('${ctx.id}')`}">
+                     onclick="${action}">
                     <div class="tile-icon">${ctx.icon}</div>
                     <div class="tile-label">${ctx.label}</div>
                     ${total > 0 ? `<div class="tile-count">${total} phrases</div>` : ''}
@@ -1349,6 +1676,49 @@ const app = {
         document.getElementById('contextBadge').textContent = 'Home';
         document.getElementById('backBtn').classList.remove('visible');
         speechSynthesis.cancel();
+    },
+
+    // ---------- SETTINGS ----------
+    openSettings() {
+        document.getElementById('contextBadge').textContent = '⚙️ Settings';
+        document.getElementById('backBtn').classList.add('visible');
+        renderVoiceSettings();
+        this.showScreen('settingsScreen');
+    },
+
+    selectVoice(voiceName) {
+        const english = getEnglishVoices();
+        const voice = english.find(v => v.name === voiceName);
+        if (!voice) return;
+        preferredVoice = voice;
+
+        // Save preference
+        const data = loadCustomData();
+        data.preferences.voiceName = voiceName;
+        saveCustomData(data);
+
+        renderVoiceSettings();
+        showToast('✓ Voice: ' + voiceName.replace(/com\.apple\.\w+\./g, '').replace(/Microsoft\s+/g, ''), 'success');
+    },
+
+    previewVoice(voiceName) {
+        const english = getEnglishVoices();
+        const voice = english.find(v => v.name === voiceName);
+        if (!voice) return;
+        speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance("Hi, I'm Ryan's voice. This is how I sound.");
+        utt.voice = voice;
+        utt.rate = speechRate;
+        utt.pitch = 0.95;
+        speechSynthesis.speak(utt);
+    },
+
+    updateSpeed(val) {
+        speechRate = parseFloat(val);
+        document.getElementById('speedValue').textContent = speechRate.toFixed(2) + '×';
+        const data = loadCustomData();
+        data.preferences.voiceRate = speechRate;
+        saveCustomData(data);
     }
 };
 

@@ -272,6 +272,28 @@
         .starter-btn .starter-icon { font-size:20px; flex-shrink:0; }
         .starter-btn .starter-hint { font-size:11px; color:var(--text-muted); margin-left:auto; flex-shrink:0; }
 
+        /* ===== HERO TILES (full-width, centered) ===== */
+        .sos-hero, .talk-hero, .convo-hero { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 22px; border-radius:var(--radius-lg); margin-bottom:10px; cursor:pointer; transition:transform 0.12s; min-height:76px; }
+        .sos-hero:active, .talk-hero:active, .convo-hero:active { transform:scale(0.97); }
+        .hero-icon { font-size:28px; margin-bottom:4px; }
+        .hero-label { font-family:'DM Serif Display',serif; font-size:18px; font-weight:700; }
+        .hero-sub { font-size:11px; margin-top:2px; }
+
+        .sos-hero { background:linear-gradient(135deg,rgba(255,107,107,0.08),rgba(255,160,60,0.06)); border:1.5px solid rgba(255,107,107,0.4); }
+        .sos-hero:active { border-color:var(--accent-warm); background:rgba(255,107,107,0.12); }
+        .sos-hero .hero-label { color:var(--accent-warm); }
+        .sos-hero .hero-sub { color:rgba(255,107,107,0.6); }
+
+        .talk-hero { background:linear-gradient(135deg,rgba(108,99,255,0.08),rgba(139,92,246,0.06)); border:1.5px solid rgba(108,99,255,0.3); }
+        .talk-hero:active { border-color:var(--accent-primary); background:rgba(108,99,255,0.12); }
+        .talk-hero .hero-label { color:var(--accent-primary); }
+        .talk-hero .hero-sub { color:rgba(108,99,255,0.5); }
+
+        .convo-hero { background:linear-gradient(135deg,rgba(72,187,120,0.08),rgba(56,178,172,0.06)); border:1.5px solid rgba(72,187,120,0.3); }
+        .convo-hero:active { border-color:#48bb78; background:rgba(72,187,120,0.12); }
+        .convo-hero .hero-label { color:#48bb78; }
+        .convo-hero .hero-sub { color:rgba(72,187,120,0.5); }
+
         /* ===== FEEDBACK BUTTONS ===== */
         .suggested-card-wrap { display:flex; align-items:stretch; gap:4px; flex-shrink:0; }
         .suggested-card-wrap .suggested-card { flex:1; }
@@ -494,8 +516,10 @@
         </div>
         <div class="settings-section">
             <div class="settings-section-title">🛠️ Developer Report</div>
-            <div class="settings-section-desc">View usage data, errors, and conversation logs.</div>
-            <button class="modal-btn save" style="max-width:250px;" onclick="app.openReport()">🛠️ Open Dev Report</button>
+            <div class="settings-section-desc">View usage data, errors, and conversation logs. Email reports to ibvava@gmail.com.</div>
+            <button class="modal-btn save" style="max-width:250px;margin-bottom:8px;" onclick="app.openReport()">📊 View Report</button>
+            <button class="modal-btn save" style="max-width:250px;margin-bottom:8px;" onclick="app.emailReport()">📧 Email Report</button>
+            <button class="modal-btn cancel" style="max-width:250px;" onclick="app.downloadReport()">💾 Download Report</button>
         </div>
         <div class="settings-section">
             <div class="settings-section-title">Reset Data</div>
@@ -935,13 +959,11 @@ malayalam: {
 const CONTEXTS = [
     {id:"sensory",     icon:"⚡", label:"Quick SOS",         group:"urgent"},
     {id:"topicLaunch", icon:"🗣️", label:"Start Talking",     group:"urgent"},
-    {id:"conversation",icon:"💬", label:"Conversation",      group:"life"},
+    {id:"conversation",icon:"💬", label:"Talk to Me",        group:"urgent"},
     {id:"school",      icon:"🏫", label:"At School",         group:"life"},
     {id:"home",        icon:"🏡", label:"At Home",           group:"life"},
-    {id:"malayalam",   icon:"🇮🇳", label:"Malayalam",         group:"languages"},
-    {id:"writing",     icon:"✍️", label:"I want to write",   group:"tools", comingSoon:true},
-    {id:"report",      icon:"🛠️", label:"Dev Report",         group:"tools"},
-    {id:"settings",    icon:"⚙️", label:"Settings",          group:"tools"},
+    {id:"malayalam",   icon:"🇮🇳", label:"Malayalam",         group:"life"},
+    {id:"settings",    icon:"⚙️", label:"Settings",          group:"life"},
 ];
 
 // ============================================================
@@ -1712,42 +1734,57 @@ const TOPIC_STARTERS = {
 
 // TOPIC CLOUDS — semantic word groups that trigger topic detection
 const TOPIC_CLOUDS = {
-    // Daily Living
-    food:      ['eat','food','dinner','lunch','breakfast','snack','hungry','cook','meal','order','restaurant','menu','recipe','kitchen','fridge','pizza','pasta','chicken','rice','sandwich','noodle','soup','salad','fruit','dessert','cake','chocolate','cereal','toast','egg','cheese','bread','vegetable','meat','fish','curry','roast','bbq','takeaway','delicious','yummy','taste','hot','cold','warm','spicy','mild'],
-    drink:     ['drink','thirsty','water','juice','tea','coffee','milk','cup','bottle','hot chocolate','smoothie','lemonade','cordial','sip'],
-    hygiene:   ['shower','bath','teeth','brush','wash','clean','soap','towel','haircut','clothes','dressed','change','deodorant','shampoo','toilet','bathroom'],
-    transport: ['car','bus','train','drive','ride','walk','pick up','drop off','school bus','seat belt','window','trip','travel','uber','taxi','bike','scooter'],
-    shopping:  ['shop','buy','store','money','price','want','need','clothes','shoes','size','colour','try on','expensive','cheap','sale','pay','wallet','card'],
-    health:    ['doctor','dentist','medicine','pain','sick','appointment','hospital','check up','injection','needle','temperature','headache','stomach','throat','cough','flu','allergy','tablet','pill'],
-    sleep:     ['bed','sleep','tired','wake','dream','nightmare','pillow','blanket','alarm','morning','rest','nap','sleepy','yawn','stay up','bedtime'],
-    chores:    ['clean','tidy','room','dishes','laundry','rubbish','vacuum','help','job','task','done','finished','pack','unpack','organise','put away'],
-    weather:   ['rain','sun','weather','umbrella','jacket','coat','wind','storm','cloudy','sunny','forecast','degrees','temperature','humid','hail','thunder','lightning','drizzle'],
+    // ===== DAILY LIVING =====
+    food:      ['eat','food','dinner','lunch','breakfast','snack','hungry','cook','meal','order','restaurant','menu','recipe','kitchen','fridge','pizza','pasta','chicken','rice','sandwich','noodle','soup','salad','fruit','dessert','cake','chocolate','cereal','toast','egg','cheese','bread','vegetable','meat','fish','curry','roast','bbq','takeaway','delicious','yummy','taste','hot','cold','warm','spicy','mild','sausage','steak','burger','chips','fries','nuggets','taco','sushi','ice cream','biscuit','muffin','pancake','waffle','yoghurt','banana','apple','strawberry','mango','peanut','butter','sauce','gravy','roast','casserole','stir fry','spring roll','fried rice','garlic bread','vegemite','tim tam','lamington','meat pie','pav','pavlova'],
+    drink:     ['drink','thirsty','water','juice','tea','coffee','milk','cup','bottle','hot chocolate','smoothie','lemonade','cordial','sip','straw','fizzy','sparkling','warm drink','cold drink','milkshake','iced','milo','poppers'],
+    hygiene:   ['shower','bath','teeth','brush','wash','clean','soap','towel','haircut','clothes','dressed','change','deodorant','shampoo','toilet','bathroom','toothbrush','toothpaste','floss','comb','hair','nails','sunscreen','face','hands'],
+    transport: ['car','bus','train','drive','ride','walk','pick up','drop off','school bus','seat belt','window','trip','travel','uber','taxi','bike','scooter','tram','ferry','airplane','airport','road','traffic','parking','petrol','station','platform','ticket','fare'],
+    shopping:  ['shop','buy','store','money','price','want','need','clothes','shoes','size','colour','try on','expensive','cheap','sale','pay','wallet','card','trolley','basket','aisle','checkout','receipt','online','delivery','amazon','kmart','target','woolworths','coles','aldi'],
+    health:    ['doctor','dentist','medicine','pain','sick','appointment','hospital','check up','injection','needle','temperature','headache','stomach','throat','cough','flu','allergy','tablet','pill','pharmacy','nurse','ambulance','bandaid','plaster','blood','swollen','infection','rash','asthma','inhaler','prescription','specialist','therapy','therapist','OT','occupational'],
+    sleep:     ['bed','sleep','tired','wake','dream','nightmare','pillow','blanket','alarm','morning','rest','nap','sleepy','yawn','stay up','bedtime','insomnia','snore','doze','drowsy','exhausted','melatonin','night light','weighted blanket','duvet'],
+    chores:    ['clean','tidy','room','dishes','laundry','rubbish','vacuum','help','job','task','done','finished','pack','unpack','organise','put away','sweep','mop','wipe','fold','hang','iron','recycle','bin','garbage','dishwasher','washing machine','dryer'],
+    weather:   ['rain','sun','weather','umbrella','jacket','coat','wind','storm','cloudy','sunny','forecast','degrees','temperature','humid','hail','thunder','lightning','drizzle','snow','fog','overcast','breeze','cyclone','drought','flood','rainbow','UV'],
 
-    // Academic
-    math:      ['math','maths','number','calculate','equation','multiply','divide','add','subtract','algebra','geometry','fraction','decimal','percent','angle','triangle','formula','theorem','proof','pattern','symmetry','graph','function','variable','pi','infinity','statistics','probability','prime','factor','square root','derivative','integral','matrix','vector'],
-    english:   ['read','write','story','character','plot','essay','paragraph','grammar','vocabulary','sentence','author','book','chapter','poem','metaphor','analyse','theme','setting','narrative','spelling','punctuation','creative writing','describe','imagine','fiction','novel'],
-    science:   ['experiment','hypothesis','energy','force','chemical','biology','physics','atom','cell','evolution','gravity','temperature','molecule','reaction','lab','microscope','planet','solar','space','ecosystem'],
-    school:    ['school','class','teacher','homework','assignment','test','exam','project','grade','lesson','subject','student','study','learn','lecture','report','presentation','deadline','mark','result'],
+    // ===== ROUTINES & DAILY =====
+    routine:   ['morning routine','after school','before bed','bedtime routine','get ready','getting ready','next','then','first','after that','schedule','plan','what now','what next','timetable','calendar','diary','reminder','alarm','timer'],
+    bathroom:  ['toilet','bathroom','need to go','busting','hurry','emergency','private','door','lock','paper','flush','wash hands','accident'],
+    outings:   ['go out','going out','outing','trip','excursion','park','beach','pool','swimming pool','library','museum','zoo','aquarium','cinema','movies','mall','shopping centre','playground','cafe','picnic','bushwalk','drive','road trip','holiday'],
+    waiting:   ['wait','waiting','how long','bored','when','soon','almost','nearly','patient','turn','queue','line','next','my turn','hurry up','taking forever'],
+    manners:   ['please','thank you','thanks','sorry','excuse me','pardon','welcome','bless you','after you','share','turn','gentle','kind','polite','rude','interrupt'],
 
-    // Entertainment & Social
-    gaming:    ['game','play','level','score','minecraft','roblox','fortnite','controller','online','multiplayer','boss','quest','character','mod','server','pvp','build','craft','win','lose','team','strategy'],
-    movies_tv: ['movie','film','show','watch','episode','season','actor','scene','funny','scary','boring','ending','series','netflix','disney','youtube','video','trailer','sequel','animation','cartoon','documentary','superhero','horror','comedy'],
-    music:     ['song','music','listen','singer','band','playlist','lyrics','concert','instrument','guitar','piano','drum','beat','melody','album','spotify'],
-    friends:   ['friend','mate','play','invite','party','birthday','sleepover','together','hang out','visit','came over','playground','recess','lunch break'],
-    pets:      ['dog','cat','pet','animal','feed','walk','vet','cute','puppy','kitten','bird','fish','hamster','rabbit'],
-    sports:    ['sport','soccer','football','cricket','swim','run','basketball','tennis','kick','catch','throw','race','goal','point','match','training','coach','practice'],
+    // ===== ACADEMIC =====
+    math:      ['math','maths','number','calculate','equation','multiply','divide','add','subtract','algebra','geometry','fraction','decimal','percent','angle','triangle','formula','theorem','proof','pattern','symmetry','graph','function','variable','pi','infinity','statistics','probability','prime','factor','square root','derivative','integral','matrix','vector','ratio','proportion','circumference','diameter','radius','area','volume','perimeter','coordinate','axis','quadratic','polynomial','logarithm','exponent','sequence','series','fibonacci','pythagoras'],
+    english:   ['read','write','story','character','plot','essay','paragraph','grammar','vocabulary','sentence','author','book','chapter','poem','metaphor','analyse','theme','setting','narrative','spelling','punctuation','creative writing','describe','imagine','fiction','novel','protagonist','antagonist','conflict','resolution','dialogue','imagery','simile','alliteration','foreshadowing','symbolism','genre','biography','autobiography','memoir','literary'],
+    science:   ['experiment','hypothesis','energy','force','chemical','biology','physics','atom','cell','evolution','gravity','temperature','molecule','reaction','lab','microscope','planet','solar','space','ecosystem','DNA','gene','species','habitat','photosynthesis','magnet','electricity','circuit','volcano','earthquake','fossil','dinosaur','climate','atmosphere','oxygen','carbon','periodic table','element','compound'],
+    school:    ['school','class','teacher','homework','assignment','test','exam','project','grade','lesson','subject','student','study','learn','lecture','report','presentation','deadline','mark','result','assembly','excursion','canteen','playground','recess','lunchtime','roll call','principal','substitute','relief teacher','library','locker','desk','chair','whiteboard','textbook','worksheet','group work','partner'],
+    reading:   ['book','reading','page','chapter','library','borrow','return','bookmark','cover','title','author','series','genre','fiction','non-fiction','comic','graphic novel','ebook','audiobook','read aloud','comprehension','fluency'],
+    art:       ['draw','paint','colour','art','craft','create','design','sketch','pencil','brush','canvas','glue','scissors','paper','clay','sculpture','collage','print','stamp','pattern','creative','masterpiece','portrait','landscape','abstract'],
+    homework:  ['homework','assignment','due','project','study','revision','notes','research','essay','draft','submit','deadline','extension','marks','grade','feedback','correction','practice','worksheet','textbook','online','google','reference'],
 
-    // Emotional/Sensory
-    sensory:   ['loud','noise','smell','bright','light','touch','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering'],
-    feelings:  ['happy','sad','angry','scared','worried','excited','nervous','calm','frustrated','proud','embarrassed','lonely','bored','confused','anxious','stressed','overwhelmed','grateful','hopeful','disappointed'],
+    // ===== ENTERTAINMENT & SOCIAL =====
+    gaming:    ['game','play','level','score','minecraft','roblox','fortnite','controller','online','multiplayer','boss','quest','character','mod','server','pvp','build','craft','win','lose','team','strategy','pokemon','mario','zelda','switch','playstation','xbox','steam','app store','download','update','lag','glitch','cheat','hack','speedrun','walkthrough','tutorial','sandbox','RPG','FPS','puzzle game'],
+    movies_tv: ['movie','film','show','watch','episode','season','actor','scene','funny','scary','boring','ending','series','netflix','disney','youtube','video','trailer','sequel','animation','cartoon','documentary','superhero','horror','comedy','drama','thriller','streaming','binge','rewatch','subtitle','dub','review','rating','plot twist','cliffhanger','finale','premiere','stan','prime video','ABC kids'],
+    music:     ['song','music','listen','singer','band','playlist','lyrics','concert','instrument','guitar','piano','drum','beat','melody','album','spotify','earphones','speakers','volume','bass','rhythm','genre','pop','rock','jazz','classical','hip hop','rap','country','soundtrack','karaoke','tune','hum','sing'],
+    friends:   ['friend','mate','play','invite','party','birthday','sleepover','together','hang out','visit','came over','playground','recess','lunch break','best friend','new kid','group','chat','message','facetime','play date','social','lonely','left out','included','excluded','popular','bully','mean','nice','kind'],
+    pets:      ['dog','cat','pet','animal','feed','walk','vet','cute','puppy','kitten','bird','fish','hamster','rabbit','guinea pig','turtle','lizard','snake','horse','pony','collar','leash','cage','tank','litter','treat','toy','groom','bark','meow','purr'],
+    sports:    ['sport','soccer','football','cricket','swim','run','basketball','tennis','kick','catch','throw','race','goal','point','match','training','coach','practice','fitness','gym','exercise','stretch','warm up','cool down','medal','trophy','competition','tournament','Olympics','AFL','NRL','league','team sport'],
 
-    // Additional Topics
-    holidays:  ['holiday','vacation','christmas','easter','birthday','party','celebrate','present','gift','cake','special','occasion','anniversary','new year','halloween','weekend','camp','trip','adventure','travel'],
-    technology:['computer','laptop','phone','tablet','ipad','app','download','internet','wifi','email','website','screen','charge','battery','broken','update','password','headphones','bluetooth','printer'],
-    money:     ['money','dollar','cost','price','buy','pay','save','spend','expensive','cheap','afford','wallet','pocket money','allowance','change','coin','note','bank'],
-    cooking:   ['cook','bake','recipe','ingredient','mix','stir','oven','microwave','fridge','hot','boil','fry','chop','peel','serve','plate','bowl','spoon','fork','knife'],
-    time:      ['time','clock','hour','minute','late','early','soon','later','tomorrow','yesterday','today','morning','afternoon','evening','night','weekend','week','month','hurry','wait','schedule','appointment'],
-    appearance:['look','wear','shirt','pants','shoes','hat','dress','jacket','uniform','hair','glasses','bag','backpack','watch','jewellery','outfit','comfortable','smart','casual'],
+    // ===== EMOTIONAL / SENSORY =====
+    sensory:   ['loud','noise','smell','bright','light','touch','hurt','pain','sick','headache','dizzy','uncomfortable','itchy','scratchy','sticky','wet','dry','crowded','busy','overwhelming','flashy','flickering','buzzing','humming','scratching','rough','smooth','soft','hard','vibration','pressure','tight','loose','tag','seam','label'],
+    feelings:  ['happy','sad','angry','scared','worried','excited','nervous','calm','frustrated','proud','embarrassed','lonely','bored','confused','anxious','stressed','overwhelmed','grateful','hopeful','disappointed','jealous','guilty','ashamed','surprised','shocked','relieved','content','irritated','furious','terrified','panicked','miserable','cheerful','delighted','ecstatic'],
+    emotions_complex: ['conflicted','ambivalent','nostalgic','melancholy','empathetic','compassionate','resentful','insecure','vulnerable','defensive','apathetic','motivated','inspired','determined','resigned','indifferent','suspicious','trusting','regretful','appreciative','contemptuous','admiring','envious','awestruck'],
+
+    // ===== ADDITIONAL TOPICS =====
+    holidays:  ['holiday','vacation','christmas','easter','birthday','party','celebrate','present','gift','cake','special','occasion','anniversary','new year','halloween','weekend','camp','trip','adventure','travel','diwali','eid','hanukkah','ramadan','anzac','australia day','queens birthday','school holidays','long weekend','break','countdown'],
+    technology:['computer','laptop','phone','tablet','ipad','app','download','internet','wifi','email','website','screen','charge','battery','broken','update','password','headphones','bluetooth','printer','mouse','keyboard','monitor','USB','cable','charger','restart','freeze','crash','slow','storage','cloud','backup','screenshot','notification','settings','dark mode','brightness','volume'],
+    money:     ['money','dollar','cost','price','buy','pay','save','spend','expensive','cheap','afford','wallet','pocket money','allowance','change','coin','note','bank','ATM','card','eftpos','budget','earn','reward','gift card','online shopping','receipt','tax','discount','bargain','value'],
+    cooking:   ['cook','bake','recipe','ingredient','mix','stir','oven','microwave','fridge','hot','boil','fry','chop','peel','serve','plate','bowl','spoon','fork','knife','pan','pot','saucepan','timer','temperature','degrees','rise','knead','whisk','blend','grate','marinate','season','taste test','measure','cup','tablespoon','teaspoon'],
+    time:      ['time','clock','hour','minute','late','early','soon','later','tomorrow','yesterday','today','morning','afternoon','evening','night','weekend','week','month','hurry','wait','schedule','appointment','half past','quarter to','o\'clock','midnight','noon','sunrise','sunset','dawn','dusk','fortnight','term','semester','year'],
+    appearance:['look','wear','shirt','pants','shoes','hat','dress','jacket','uniform','hair','glasses','bag','backpack','watch','jewellery','outfit','comfortable','smart','casual','hoodie','trackies','tracksuit','sneakers','runners','boots','thongs','singlet','shorts','skirt','beanie','scarf','gloves','belt','tie','button','zip','laces'],
+    body:      ['hand','foot','leg','arm','head','face','eye','ear','nose','mouth','finger','toe','knee','elbow','shoulder','back','chest','tummy','neck','wrist','ankle','thumb','skin','bone','muscle','joint','posture','stretch','relax','tense','cramp','sore','stiff'],
+    helping:   ['help','assist','support','together','team','cooperate','share','contribute','volunteer','carry','hold','open','close','reach','pick up','put down','push','pull','lift','move','fix','repair','solve','figure out'],
+    choices:   ['choose','pick','decide','option','prefer','rather','instead','alternative','either','or','both','neither','first','second','which','what','compare','favourite','best','worst','better','worse','same','different'],
+    learning:  ['understand','learn','know','remember','forget','think','wonder','curious','question','answer','explain','teach','show','demonstrate','example','practice','improve','progress','difficult','easy','hard','simple','complex','challenge','mistake','error','correct','try again','attempt','figure out','work out','solve'],
 };
 
 // QUESTION PATTERNS — detect what TYPE of response is needed
@@ -1922,9 +1959,70 @@ const CONTEXTUAL_RESPONSES = {
     'time:specific':      ["What time do we need to leave?","How long will it take?","When is it happening?","How much time do I have?"],
 
     // ---- APPEARANCE / CLOTHES ----
-    'appearance:choice':  ["The blue shirt.","Something comfortable.","My favourite outfit.","Whatever's clean.","Can I wear casual clothes?"],
+    'appearance:choice':  ["The blue shirt.","Something comfortable.","My favourite outfit.","Whatever's clean.","Can I wear casual clothes?","The hoodie and trackies.","Something warm.","Something cool."],
     'appearance:yesno':   ["Yes, I'm dressed.","Not yet — I'm choosing.","These clothes feel uncomfortable.","I like this outfit.","Does this look okay?"],
-    'appearance:opinion': ["I think this looks good.","I'm not comfortable in this.","I prefer something more casual.","The fabric feels strange."],
+    'appearance:opinion': ["I think this looks good.","I'm not comfortable in this.","I prefer something more casual.","The fabric feels strange.","This tag is scratching me."],
+
+    // ---- ROUTINE ----
+    'routine:status':     ["I've done everything.","I still need to brush my teeth.","I'm running behind.","Almost ready.","What's next on the list?"],
+    'routine:yesno':      ["Yes, I've done it all.","Not yet.","I forgot one thing.","Can I skip that today?","I need a reminder."],
+    'routine:specific':   ["What do I need to do next?","What time is my appointment?","When do we need to leave?","What's the plan for today?"],
+
+    // ---- BATHROOM ----
+    'bathroom:yesno':     ["Yes, I need the bathroom.","Not right now.","It's urgent.","I'm done.","Can I have some privacy?"],
+    'bathroom:status':    ["I need to go now.","I'm finished.","I need help.","Can you wait for me?"],
+
+    // ---- OUTINGS ----
+    'outings:choice':     ["The park would be nice.","Can we go to the beach?","I'd like to go to the library.","The pool, please.","Somewhere quiet.","The cinema would be fun."],
+    'outings:yesno':      ["Yes, I'd love to go.","I'd rather stay home.","Maybe, if it's not too crowded.","That sounds fun.","Will it be noisy?","Can I bring my headphones?"],
+    'outings:review':     ["That was a genuinely enjoyable outing.","It was fun but tiring.","I'd like to go back.","It was a bit overwhelming.","Best outing in a while."],
+    'outings:opinion':    ["I think the park is the best option.","The beach might be too crowded.","The library is always a good choice.","I'd prefer somewhere with fewer people."],
+
+    // ---- WAITING ----
+    'waiting:status':     ["I'm still waiting.","How much longer?","I'm getting bored.","I can wait a bit more.","Is it my turn yet?"],
+    'waiting:yesno':      ["Yes, I can wait.","No, I need it now.","I'm trying to be patient.","How much longer will it be?"],
+
+    // ---- READING ----
+    'reading:review':     ["I thoroughly enjoyed it.","The story was compelling.","I couldn't put it down.","The characters felt real.","The ending was unexpected."],
+    'reading:preference': ["I prefer fiction with complex plots.","Non-fiction can be genuinely fascinating.","I love a good mystery.","I like books that challenge my thinking."],
+    'reading:status':     ["I've finished it.","I'm about halfway through.","Just started — it's promising.","I need to return it to the library."],
+    'reading:choice':     ["Something with a good plot.","A series I can get into.","Non-fiction about science or maths.","A classic I haven't read yet."],
+
+    // ---- ART ----
+    'art:choice':         ["I'd like to draw.","Can we paint?","I want to work with clay.","Something creative with paper.","Can I design something on the iPad?"],
+    'art:review':         ["I'm quite pleased with how it turned out.","It didn't go as planned, but that's alright.","I think the colours work well together."],
+    'art:opinion':        ["I think art is genuinely therapeutic.","I find the creative process interesting.","It's harder than it looks."],
+
+    // ---- HOMEWORK ----
+    'homework:status':    ["I've finished everything.","Still working on it.","I'm stuck on one question.","I need help with the last part.","Almost done — one more to go."],
+    'homework:yesno':     ["Yes, it's all done.","No, I still have more.","I have a deadline tomorrow.","Yes, but I'm not confident about it."],
+    'homework:opinion':   ["The assignment is actually interesting.","It's quite challenging.","I think I did well.","I'm not sure about my answer."],
+    'homework:explanation':["I used a different method.","The instructions weren't clear.","I based it on what we learned in class.","I approached it from an unusual angle."],
+
+    // ---- BODY ----
+    'body:specific':      ["My head hurts.","My legs are sore.","My back is stiff.","My hands are tired.","My eyes feel strained."],
+    'body:status':        ["I'm feeling physically okay.","I'm a bit stiff today.","My muscles are tired.","I need to stretch."],
+
+    // ---- HELPING ----
+    'helping:yesno':      ["Yes, I'd like to help.","Not right now, thanks.","I can try.","Can someone help me instead?"],
+    'helping:choice':     ["I'll carry that.","I can hold the door.","Let me help with the dishes.","I'll tidy up."],
+
+    // ---- CHOICES ----
+    'choices:choice':     ["The first option.","The second one, I think.","Can I see both again?","I don't have a strong preference.","Neither — is there a third option?"],
+    'choices:opinion':    ["I think option A is better.","Option B has more potential.","They're both reasonable.","It depends on the criteria."],
+
+    // ---- LEARNING ----
+    'learning:status':    ["I understand it now.","I'm still processing.","I need it explained differently.","I've grasped the concept.","Can you show me again?"],
+    'learning:yesno':     ["Yes, I understand.","Not quite yet.","Almost — one more explanation?","I think so."],
+    'learning:opinion':   ["I find this genuinely interesting.","It's more complex than I expected.","I prefer learning by doing.","The visual explanation helped."],
+    'learning:explanation':["I worked it out by finding the pattern.","I used a method from a previous lesson.","It clicked when I saw the example.","Let me explain my reasoning."],
+
+    // ---- EMOTIONS COMPLEX ----
+    'emotions_complex:wellbeing':  ["I'm feeling conflicted about something.","I have mixed emotions right now.","I'm feeling quite vulnerable today.","I'm inspired and want to channel that."],
+    'emotions_complex:explanation':["It's a complicated feeling to articulate.","I think I'm processing multiple emotions simultaneously.","Part of me feels one way, part another.","The feeling is nuanced — not simply good or bad."],
+
+    // ---- MANNERS ----
+    'manners:yesno':      ["Yes, please.","No, thank you.","That's very kind of you.","I'd appreciate that.","Excuse me, could I have a moment?"],
 };
 
 // ============================================================
@@ -2446,18 +2544,84 @@ function analyseAndSuggest(text, isFinal) {
         for (const kw of keywordWords) {
             if (cardLower.includes(kw)) score += 3;
         }
-        if (lastSpokenKey) {
-            try {
-                const d = loadData();
-                const seq = d.sequences?.[lastSpokenKey]?.[card.text];
-                if (seq) score += seq * 2;
-            } catch {}
-        }
+        // IMPROVEMENT 5: Expanded sequence learning — check last 3 phrases, not just 1
+        try {
+            const d = loadData();
+            // Check immediate previous phrase
+            if (lastSpokenKey) {
+                const seq1 = d.sequences?.[lastSpokenKey]?.[card.text];
+                if (seq1) score += seq1 * 2;
+            }
+            // Check phrase before that (2-back)
+            if (conversationTranscript.length >= 2) {
+                const twoBack = conversationTranscript[conversationTranscript.length - 2].text;
+                const key2 = app.currentContext + ':' + twoBack;
+                const seq2 = d.sequences?.[key2]?.[card.text];
+                if (seq2) score += seq2 * 1.5;
+            }
+            // Check 3-back
+            if (conversationTranscript.length >= 3) {
+                const threeBack = conversationTranscript[conversationTranscript.length - 3].text;
+                const key3 = app.currentContext + ':' + threeBack;
+                const seq3 = d.sequences?.[key3]?.[card.text];
+                if (seq3) score += seq3;
+            }
+
+            // IMPROVEMENT 6: Adaptive weighting from 👍/👎 feedback
+            const fb = d.feedback || [];
+            const ups = fb.filter(f => f.phrase === card.text && f.rating === 'up').length;
+            const downs = fb.filter(f => f.phrase === card.text && f.rating === 'down').length;
+            score += (ups * 1.5) - (downs * 2); // Boost liked, penalise disliked
+        } catch {}
         if (score > 0) {
             alreadyAdded.add(card.text);
             scores.push({card, score});
         }
     });
+
+    // Priority 4b: IMPROVEMENT 4 — N-gram word prediction
+    // Simple bigram: if the heard speech ends with specific words, suggest responses containing likely next words
+    if (lower.length > 3) {
+        const spokenWords = lower.split(/\s+/);
+        const lastWord = spokenWords[spokenWords.length - 1]?.replace(/[.,!?]/g, '');
+        const secondLastWord = spokenWords.length >= 2 ? spokenWords[spokenWords.length - 2]?.replace(/[.,!?]/g, '') : '';
+
+        // Build bigram predictions from Ryan's own spoken history
+        try {
+            const d = loadData();
+            const convoLog = d.conversationLog || [];
+            // Extract word pairs from what Ryan has previously said
+            const bigramScores = {};
+            convoLog.forEach(entry => {
+                if (!entry.chosen) return;
+                const words = entry.chosen.toLowerCase().split(/\s+/);
+                for (let i = 0; i < words.length - 1; i++) {
+                    const w = words[i].replace(/[.,!?'"]/g, '');
+                    const next = words[i+1].replace(/[.,!?'"]/g, '');
+                    if (w === lastWord && next.length > 2) {
+                        bigramScores[next] = (bigramScores[next] || 0) + 1;
+                    }
+                }
+            });
+
+            // Boost cards that contain high-probability next words
+            const topBigrams = Object.entries(bigramScores).sort((a,b) => b[1]-a[1]).slice(0,5);
+            if (topBigrams.length > 0) {
+                allCards.forEach(card => {
+                    if (alreadyAdded.has(card.text)) return;
+                    const cl = card.text.toLowerCase();
+                    let bigramScore = 0;
+                    topBigrams.forEach(([word, count]) => {
+                        if (cl.includes(word)) bigramScore += count * 0.5;
+                    });
+                    if (bigramScore > 0) {
+                        alreadyAdded.add(card.text);
+                        scores.push({card, score: bigramScore, source: '📊 learned'});
+                    }
+                });
+            }
+        } catch {}
+    }
 
     // Priority 5: Cross-context cards
     if (primaryTopic && primaryTopic !== app.currentContext && CARD_DATA[primaryTopic]) {
@@ -2607,6 +2771,29 @@ const app = {
 
     renderSOSDashboard() {
         const groups = [
+            { id:'needs', label:'🎯 I Need', icon:'🎯', color:'needs', phrases:[
+                {icon:'🤫',text:'I need a quiet space.',full:true},
+                {icon:'⏰',text:'I need a break. 5 minutes.'},
+                {icon:'💧',text:'I need water.'},
+                {icon:'🚽',text:'I need the bathroom.'},
+                {icon:'🏠',text:'I need to go home.'},
+                {icon:'🧸',text:'I need my comfort item.'},
+                {icon:'💺',text:'I need to sit down.'},
+                {icon:'🏃',text:'I need to move around.'},
+                {icon:'👤',text:'I need someone I trust.'},
+                {icon:'🔄',text:'I need my calming routine.'},
+            ]},
+            { id:'overwhelm', label:'🌊 Overwhelmed', icon:'🌊', color:'overwhelm', phrases:[
+                {icon:'🆘',text:'Everything is too much right now.',full:true},
+                {icon:'🚪',text:'I need to leave right now.',full:true},
+                {icon:'🛑',text:'I\'m about to have a meltdown.',full:true},
+                {icon:'↔️',text:'I need space. Please step back.'},
+                {icon:'⏸️',text:'I\'m shutting down. Give me time.'},
+                {icon:'🤐',text:'Stop talking to me for a moment.'},
+                {icon:'🧘',text:'I\'m trying to calm down.'},
+                {icon:'🧠',text:'I can\'t think clearly right now.'},
+                {icon:'👥',text:'Too many people.'},
+            ]},
             { id:'sound', label:'🔊 Sound', icon:'🔊', color:'sound', phrases:[
                 {icon:'🔇',text:'It\'s too loud in here.'},
                 {icon:'🎧',text:'I need my headphones.'},
@@ -2633,29 +2820,6 @@ const app = {
                 {icon:'👕',text:'These clothes are bothering me.'},
                 {icon:'💺',text:'The seat feels wrong.'},
                 {icon:'😖',text:'This texture is uncomfortable.'},
-            ]},
-            { id:'overwhelm', label:'🌊 Overwhelmed', icon:'🌊', color:'overwhelm', phrases:[
-                {icon:'🆘',text:'Everything is too much right now.',full:true},
-                {icon:'🚪',text:'I need to leave right now.',full:true},
-                {icon:'🛑',text:'I\'m about to have a meltdown.',full:true},
-                {icon:'↔️',text:'I need space. Please step back.'},
-                {icon:'⏸️',text:'I\'m shutting down. Give me time.'},
-                {icon:'🤐',text:'Stop talking to me for a moment.'},
-                {icon:'🧘',text:'I\'m trying to calm down.'},
-                {icon:'🧠',text:'I can\'t think clearly right now.'},
-                {icon:'👥',text:'Too many people.'},
-            ]},
-            { id:'needs', label:'🎯 I Need', icon:'🎯', color:'needs', phrases:[
-                {icon:'🤫',text:'I need a quiet space.',full:true},
-                {icon:'⏰',text:'I need a break. 5 minutes.'},
-                {icon:'💧',text:'I need water.'},
-                {icon:'🚽',text:'I need the bathroom.'},
-                {icon:'🏠',text:'I need to go home.'},
-                {icon:'🧸',text:'I need my comfort item.'},
-                {icon:'💺',text:'I need to sit down.'},
-                {icon:'🏃',text:'I need to move around.'},
-                {icon:'👤',text:'I need someone I trust.'},
-                {icon:'🔄',text:'I need my calming routine.'},
             ]},
             { id:'explain', label:'💬 Explain to Others', icon:'💬', color:'explain', phrases:[
                 {icon:'🧩',text:'I\'m autistic. I process differently.',full:true},
@@ -2784,10 +2948,14 @@ const app = {
         const contextMap = {
             food:'home', drink:'home', hygiene:'home', sleep:'home', chores:'home', cooking:'home',
             transport:'home', shopping:'home', weather:'home', appearance:'home',
+            routine:'home', bathroom:'home', body:'home',
             math:'math', english:'story', science:'school', school:'school', story:'story',
+            reading:'story', art:'school', homework:'school', learning:'school',
             gaming:'gaming', movies_tv:'gaming', music:'gaming', sports:'gaming',
             friends:'conversation', feelings:'conversation', sensory:'sensory',
             money:'conversation', time:'conversation', technology:'conversation', holidays:'conversation', pets:'conversation',
+            outings:'conversation', waiting:'conversation', manners:'conversation', helping:'conversation',
+            choices:'conversation', emotions_complex:'conversation',
         };
         const targetContext = contextMap[topicId] || 'conversation';
 
@@ -2813,28 +2981,52 @@ const app = {
 
     renderHome() {
         const grid = document.getElementById('contextGrid');
-        const groups = {urgent:'⚡ Quick Access', life:'Everyday', languages:'Languages', tools:'Tools'};
+        const groups = {urgent:'', life:''};
         let html = '';
-        for (const [gid, glabel] of Object.entries(groups)) {
-            const ctxs = CONTEXTS.filter(c => c.group === gid);
-            if (!ctxs.length) continue;
-            html += `<div class="section-label">${glabel}</div><div class="context-grid${gid==='urgent'?' urgent-grid':''}">`;
-            html += ctxs.map(ctx => {
-                const count = CARD_DATA[ctx.id] ? CARD_DATA[ctx.id].cards.length : 0;
+        
+        // HERO TILES — full-width, centered text
+        const urgentCtxs = CONTEXTS.filter(c => c.group === 'urgent');
+        urgentCtxs.forEach(ctx => {
+            const count = CARD_DATA[ctx.id]?.cards?.length || 0;
+            const customCount = (loadData().customCards[ctx.id] || []).length;
+            const total = count + customCount;
+            let action, heroClass, sub;
+            if (ctx.id === 'sensory') {
+                action = `app.openSOS()`;
+                heroClass = 'sos-hero';
+                sub = `${total} phrases — sensory, overwhelm, needs`;
+            } else if (ctx.id === 'topicLaunch') {
+                action = `app.openTopicLauncher()`;
+                heroClass = 'talk-hero';
+                sub = 'Pick a topic and start a conversation';
+            } else if (ctx.id === 'conversation') {
+                action = `app.loadContext('conversation')`;
+                heroClass = 'convo-hero';
+                sub = total ? `${total} phrases` : '';
+            } else return;
+            html += `<div class="${heroClass}" onclick="${action}">
+                <div class="hero-icon">${ctx.icon}</div>
+                <div class="hero-label">${ctx.label}</div>
+                ${sub ? `<div class="hero-sub">${sub}</div>` : ''}
+            </div>`;
+        });
+        
+        // GRID TILES — School, Home, Malayalam, Settings in a row
+        const lifeCtxs = CONTEXTS.filter(c => c.group === 'life');
+        if (lifeCtxs.length) {
+            html += `<div class="context-grid">`;
+            html += lifeCtxs.map(ctx => {
+                const count = CARD_DATA[ctx.id]?.cards?.length || 0;
                 const customCount = (loadData().customCards[ctx.id] || []).length;
                 const total = count + customCount;
-                const isUrgent = gid === 'urgent';
                 let action;
-                if (ctx.comingSoon) action = `showToast('${ctx.label} — coming soon!')`;
-                else if (ctx.id === 'settings') action = `app.openSettings()`;
-                else if (ctx.id === 'sensory') action = `app.openSOS()`;
-                else if (ctx.id === 'topicLaunch') action = `app.openTopicLauncher()`;
-                else if (ctx.id === 'report') action = `app.openReport()`;
+                if (ctx.id === 'settings') action = `app.openSettings()`;
                 else action = `app.loadContext('${ctx.id}')`;
-                return `<div class="context-tile${ctx.comingSoon?' coming-soon':''}${isUrgent?' urgent-tile':''}" onclick="${action}"><div class="tile-icon">${ctx.icon}</div><div style="${isUrgent?'text-align:left':''}"><div class="tile-label">${ctx.label}</div>${total?`<div class="tile-count">${total} phrases${isUrgent?' — sensory, overwhelm, needs':''}</div>`:''}</div></div>`;
+                return `<div class="context-tile" onclick="${action}"><div class="tile-icon">${ctx.icon}</div><div><div class="tile-label">${ctx.label}</div>${total?`<div class="tile-count">${total} phrases</div>`:''}</div></div>`;
             }).join('');
             html += '</div>';
         }
+        
         grid.innerHTML = html;
     },
 

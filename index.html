@@ -202,12 +202,142 @@
         .suggested-strip { display:none; padding:10px 14px 12px; background:rgba(108,99,255,0.04); border-bottom:1px solid var(--border-subtle); flex-shrink:0; }
         .suggested-strip.visible { display:block; }
         .suggested-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--accent-glow); margin-bottom:8px; }
-        .suggested-cards { display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
-        .suggested-cards::-webkit-scrollbar { display:none; }
-        .suggested-card { background:var(--bg-card); border:2px solid var(--accent-primary); border-radius:var(--radius-lg); padding:16px 20px; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:600; color:var(--text-primary); cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all 0.12s; max-width:320px; overflow:hidden; text-overflow:ellipsis; min-height:56px; display:flex; align-items:center; gap:8px; }
-        .suggested-card:active { transform:scale(0.95); background:var(--accent-primary); color:white; }
-        .suggested-card .match-score { font-size:11px; color:var(--accent-gold); margin-left:4px; flex-shrink:0; }
-        .suggested-card.virtual { border-style:dashed; border-color:var(--accent-gold); }
+
+        /* ===== BUBBLE SYSTEM ===== */
+        @keyframes bubbleInflate { 0% { transform:scale(0); opacity:0; } 50% { transform:scale(1.12); } 70% { transform:scale(0.96); } 100% { transform:scale(1); opacity:1; } }
+        @keyframes bubblePop { 0% { transform:scale(1); opacity:1; } 20% { transform:scale(1.3); opacity:0.8; } 100% { transform:scale(0); opacity:0; } }
+        @keyframes particleBurst { 0% { transform:scale(0.8); opacity:1; } 100% { transform:scale(3); opacity:0; } }
+        @keyframes popGhost { 0% { opacity:0.8; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-40px) scale(0.8); } }
+        @keyframes shimmer { 0% { background-position:200% center; } 100% { background-position:-200% center; } }
+        @keyframes comboFlash { 0%,100% { opacity:1; } 50% { opacity:0.5; transform:scale(1.05); } }
+        @keyframes milestoneGlow { 0% { box-shadow:0 0 0 0 rgba(255,217,61,0.4); } 50% { box-shadow:0 0 20px 8px rgba(255,217,61,0.15); } 100% { box-shadow:0 0 0 0 rgba(255,217,61,0); } }
+        @keyframes speakZonePulse { 0%,100% { box-shadow:inset 0 0 15px rgba(78,205,196,0.1), 0 0 0 0 rgba(78,205,196,0); } 50% { box-shadow:inset 0 0 20px rgba(78,205,196,0.2), 0 0 12px 4px rgba(78,205,196,0.08); } }
+        @keyframes speakZoneReady { 0%,100% { box-shadow:inset 0 0 25px rgba(78,205,196,0.3), 0 0 20px 6px rgba(78,205,196,0.15); border-color:rgba(78,205,196,0.6); } 50% { box-shadow:inset 0 0 30px rgba(78,205,196,0.4), 0 0 25px 8px rgba(78,205,196,0.2); border-color:rgba(78,205,196,0.8); } }
+        @keyframes fitSnap { 0% { transform:scale(1); } 40% { transform:scale(1.15); } 100% { transform:scale(0); opacity:0; } }
+
+        .bubble-field { display:flex; flex-wrap:wrap; gap:10px; padding:12px 14px; align-items:center; justify-content:center; min-height:60px; overflow:visible; position:relative; }
+        .bubble-field.scroll-horizontal { flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:6px; }
+        .bubble-field.scroll-horizontal::-webkit-scrollbar { display:none; }
+
+        /* === THE BUBBLE — glossy, translucent, STATIONARY, draggable === */
+        .bubble {
+            position:relative; display:inline-flex; align-items:center; justify-content:center; text-align:center;
+            padding:14px 20px; border-radius:50px;
+            font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600;
+            color:var(--text-primary); cursor:grab; user-select:none; -webkit-user-select:none;
+            touch-action:none;
+            /* Glassy translucent look */
+            background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.03) 50%, transparent 70%);
+            border:1.5px solid rgba(255,255,255,0.12);
+            backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+            box-shadow:
+                0 4px 12px rgba(0,0,0,0.15),
+                inset 0 1px 1px rgba(255,255,255,0.15),
+                0 1px 3px rgba(0,0,0,0.1);
+            /* Entry animation — NO floating drift, stationary after inflate */
+            animation:bubbleInflate 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+            transition:transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            white-space:nowrap; flex-shrink:0; overflow:hidden;
+        }
+        /* Glossy highlight */
+        .bubble::before {
+            content:''; position:absolute; top:3px; left:15%; width:40%; height:35%;
+            border-radius:50%;
+            background:linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 60%, transparent 100%);
+            pointer-events:none;
+        }
+        /* Subtle shimmer */
+        .bubble::after {
+            content:''; position:absolute; inset:0; border-radius:50px;
+            background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.08) 55%, transparent 100%);
+            background-size:200% 100%;
+            animation:shimmer 6s ease-in-out infinite;
+            pointer-events:none;
+        }
+
+        /* States */
+        .bubble.dragging { cursor:grabbing; transform:scale(1.08); box-shadow:0 8px 25px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.2); z-index:100; opacity:0.9; transition:none; }
+        .bubble.nearby { transform:scale(1.1); box-shadow:0 6px 20px rgba(0,0,0,0.2), inset 0 1px 2px rgba(255,255,255,0.2), 0 0 12px rgba(108,99,255,0.15); }
+        .bubble.dimmed { opacity:0.5; transform:scale(0.95); }
+        .bubble.popping { animation:bubblePop 0.35s ease-out forwards !important; pointer-events:none; }
+        .bubble.fitting { animation:fitSnap 0.4s ease-out forwards !important; pointer-events:none; }
+
+        /* Stagger entry */
+        .bubble:nth-child(1) { animation-delay:0s; }
+        .bubble:nth-child(2) { animation-delay:0.05s; }
+        .bubble:nth-child(3) { animation-delay:0.1s; }
+        .bubble:nth-child(4) { animation-delay:0.15s; }
+        .bubble:nth-child(5) { animation-delay:0.2s; }
+        .bubble:nth-child(6) { animation-delay:0.25s; }
+        .bubble:nth-child(7) { animation-delay:0.3s; }
+        .bubble:nth-child(8) { animation-delay:0.35s; }
+
+        /* Size by confidence */
+        .bubble.confidence-high { padding:16px 24px; font-size:16px; }
+        .bubble.confidence-med { padding:13px 18px; font-size:14px; }
+        .bubble.confidence-low { padding:10px 14px; font-size:13px; opacity:0.85; }
+
+        /* Colour tints — radial gradient under the glass */
+        .bubble.theme-suggestion { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(108,99,255,0.12) 60%, rgba(108,99,255,0.06)); border-color:rgba(108,99,255,0.25); }
+        .bubble.theme-match { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(78,205,196,0.15) 60%, rgba(78,205,196,0.06)); border-color:rgba(78,205,196,0.3); }
+        .bubble.theme-memory { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,217,61,0.12) 60%, rgba(255,217,61,0.05)); border-color:rgba(255,217,61,0.3); }
+        .bubble.theme-context { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(139,92,246,0.12) 60%, rgba(139,92,246,0.06)); border-color:rgba(139,92,246,0.3); }
+        .bubble.theme-learned { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,159,67,0.12) 60%, rgba(255,159,67,0.05)); border-color:rgba(255,159,67,0.3); }
+        .bubble.theme-sos-needs { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(78,205,196,0.15) 60%, rgba(78,205,196,0.06)); border-color:rgba(78,205,196,0.3); }
+        .bubble.theme-sos-overwhelm { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,71,87,0.15) 60%, rgba(255,71,87,0.06)); border-color:rgba(255,71,87,0.3); }
+        .bubble.theme-sos-sound { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,107,107,0.12) 60%, rgba(255,107,107,0.06)); border-color:rgba(255,107,107,0.3); }
+        .bubble.theme-sos-smell { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,159,67,0.12) 60%, rgba(255,159,67,0.05)); border-color:rgba(255,159,67,0.3); }
+        .bubble.theme-sos-light { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(255,217,61,0.12) 60%, rgba(255,217,61,0.05)); border-color:rgba(255,217,61,0.3); }
+        .bubble.theme-sos-touch { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(238,90,36,0.12) 60%, rgba(238,90,36,0.05)); border-color:rgba(238,90,36,0.3); }
+        .bubble.theme-sos-explain { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(162,155,254,0.12) 60%, rgba(162,155,254,0.06)); border-color:rgba(162,155,254,0.3); }
+        .bubble.theme-starter { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15), rgba(108,99,255,0.1) 60%, rgba(108,99,255,0.04)); border-color:rgba(108,99,255,0.2); }
+        .bubble.theme-card { background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12), rgba(108,99,255,0.06) 60%, rgba(30,28,50,0.3)); border-color:rgba(255,255,255,0.1); }
+
+        /* Levelled — used 10+ times, golden ring */
+        .bubble.levelled { border-color:rgba(255,217,61,0.5); box-shadow:0 4px 12px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.15), 0 0 8px rgba(255,217,61,0.1); }
+        .bubble.levelled::after { background:linear-gradient(90deg, transparent 0%, rgba(255,217,61,0.1) 45%, rgba(255,217,61,0.15) 50%, rgba(255,217,61,0.1) 55%, transparent 100%); background-size:200% 100%; animation:shimmer 4s ease-in-out infinite; }
+
+        /* === SPEAK ZONE — drag target at bottom === */
+        .speak-zone { 
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            margin:8px 14px 0; padding:16px; border-radius:20px;
+            border:2px dashed rgba(78,205,196,0.3);
+            background:radial-gradient(ellipse at 50% 50%, rgba(78,205,196,0.04) 0%, transparent 70%);
+            color:rgba(78,205,196,0.5); font-size:14px; font-weight:600;
+            min-height:56px; transition:all 0.2s;
+            animation:speakZonePulse 3s ease-in-out infinite;
+        }
+        .speak-zone.drag-hover {
+            border-color:rgba(78,205,196,0.6); border-style:solid;
+            background:radial-gradient(ellipse at 50% 50%, rgba(78,205,196,0.12) 0%, rgba(78,205,196,0.03) 70%);
+            color:rgba(78,205,196,0.9);
+            animation:speakZoneReady 1s ease-in-out infinite;
+            transform:scale(1.02);
+        }
+        .speak-zone .zone-icon { font-size:22px; }
+
+        /* === SENTENCE BUILDER — chain phrases by dragging right === */
+        .sentence-builder { display:none; padding:8px 14px; background:rgba(108,99,255,0.04); border-bottom:1px solid var(--border-subtle); }
+        .sentence-builder.visible { display:block; }
+        .sentence-builder-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--accent-glow); margin-bottom:6px; }
+        .sentence-builder-phrases { display:flex; flex-wrap:wrap; gap:6px; min-height:32px; }
+        .sentence-phrase { background:rgba(108,99,255,0.1); border:1px solid rgba(108,99,255,0.2); border-radius:14px; padding:6px 12px; font-size:12px; color:var(--text-primary); font-weight:600; cursor:pointer; }
+        .sentence-phrase:active { opacity:0.5; }
+        .sentence-actions { display:flex; gap:8px; margin-top:8px; }
+        .sentence-action-btn { background:rgba(78,205,196,0.1); border:1px solid rgba(78,205,196,0.3); border-radius:14px; padding:8px 16px; font-size:12px; font-weight:700; color:#4ecdc4; cursor:pointer; }
+        .sentence-action-btn.clear { background:rgba(255,107,107,0.08); border-color:rgba(255,107,107,0.2); color:#ff6b6b; }
+
+        /* Pop ghost */
+        .pop-ghost { position:fixed; pointer-events:none; font-size:13px; color:var(--accent-glow); font-weight:600; animation:popGhost 1.2s ease-out forwards; z-index:999; white-space:nowrap; text-shadow:0 0 8px rgba(108,99,255,0.3); }
+        /* Particle ring burst */
+        .pop-particles { position:absolute; inset:-10px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); animation:particleBurst 0.5s ease-out forwards; pointer-events:none; }
+
+        /* === GAMIFICATION === */
+        .bubble-counter { position:fixed; top:70px; right:16px; background:rgba(30,28,50,0.85); backdrop-filter:blur(8px); border:1px solid rgba(108,99,255,0.2); border-radius:20px; padding:6px 14px; font-size:12px; font-weight:700; color:var(--accent-glow); z-index:100; display:none; transition:all 0.3s; }
+        .bubble-counter.visible { display:flex; align-items:center; gap:6px; }
+        .bubble-counter .counter-num { font-size:16px; color:var(--accent-gold); }
+        .combo-badge { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-size:28px; font-weight:800; color:var(--accent-gold); text-shadow:0 0 20px rgba(255,217,61,0.4); pointer-events:none; z-index:1000; animation:popGhost 1.5s ease-out forwards; }
+        .milestone-toast { position:fixed; bottom:120px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, rgba(255,217,61,0.15), rgba(108,99,255,0.1)); border:1px solid rgba(255,217,61,0.3); backdrop-filter:blur(10px); border-radius:20px; padding:10px 24px; font-size:14px; font-weight:700; color:var(--accent-gold); z-index:1000; animation:milestoneGlow 2s ease-out, popGhost 3s ease-out 1s forwards; pointer-events:none; white-space:nowrap; }
 
         /* ===== YES/NO BAR — persistent on all screens ===== */
         .yesno-bar { display:flex; gap:10px; padding:8px 14px; background:var(--bg-card); border-bottom:1px solid var(--border-subtle); flex-shrink:0; z-index:90; }
@@ -393,28 +523,49 @@
     <div class="transcript-panel" id="transcriptPanel">
         <div class="transcript-text" id="transcriptText">Transcript will appear here...</div>
     </div>
-    <!-- Suggested cards from listening -->
+    <!-- Suggested bubbles from listening -->
     <div class="suggested-strip" id="suggestedStrip">
-        <div class="suggested-label">🎯 Suggested for you</div>
-        <div class="suggested-cards" id="suggestedCards"></div>
+        <div class="suggested-label" id="suggestedLabel">✨ Suggestions</div>
+        <div class="bubble-field scroll-horizontal" id="suggestedCards"></div>
     </div>
     <div class="swipe-area">
-        <div class="swipe-hint" id="swipeHint">← swipe or tap arrows →</div>
-        <div class="card-viewport" id="cardViewport">
-            <div class="phrase-card" id="phraseCard">
-                <div class="card-freq-badge" id="cardFreqBadge">⭐ Favourite</div>
-                <div class="card-category-tag" id="cardCatTag"></div>
-                <div class="phrase-text" id="phraseText">Loading...</div>
-                <div class="phrase-sub" id="phraseSub"></div>
-                <button class="speak-btn" id="speakBtn" onclick="app.speak()">TAP TO SPEAK</button>
+        <!-- SENTENCE BUILDER — shows chained phrases -->
+        <div class="sentence-builder" id="sentenceBuilder">
+            <div class="sentence-builder-label">📝 Building sentence</div>
+            <div class="sentence-builder-phrases" id="sentencePhrases"></div>
+            <div class="sentence-actions">
+                <button class="sentence-action-btn" onclick="app.speakSentence()">🔊 Speak All</button>
+                <button class="sentence-action-btn clear" onclick="app.clearSentence()">✕ Clear</button>
             </div>
         </div>
-        <div class="card-nav">
-            <button class="card-arrow" id="prevArrow" onclick="app.prev()">‹</button>
-            <div class="card-dots" id="cardDots"></div>
-            <button class="card-arrow" id="nextArrow" onclick="app.next()">›</button>
+        <!-- BUBBLE VIEW — default, shows all phrases as draggable bubbles -->
+        <div class="bubble-browse" id="bubbleBrowse">
+            <div class="bubble-field" id="cardBubbleField" style="align-content:flex-start; overflow-y:auto; max-height:45vh; padding:14px;"></div>
         </div>
-        <div class="card-counter" id="cardCounter"></div>
+        <!-- SPEAK ZONE — drag target -->
+        <div class="speak-zone" id="speakZone">
+            <span class="zone-icon">🔊</span>
+            <span>Drag here to speak</span>
+        </div>
+        <!-- SWIPE VIEW — single card, hidden by default -->
+        <div class="swipe-view" id="swipeView" style="display:none;">
+            <div class="swipe-hint" id="swipeHint">← swipe or tap arrows →</div>
+            <div class="card-viewport" id="cardViewport">
+                <div class="phrase-card" id="phraseCard">
+                    <div class="card-freq-badge" id="cardFreqBadge">⭐ Favourite</div>
+                    <div class="card-category-tag" id="cardCatTag"></div>
+                    <div class="phrase-text" id="phraseText">Loading...</div>
+                    <div class="phrase-sub" id="phraseSub"></div>
+                    <button class="speak-btn" id="speakBtn" onclick="app.speak()">TAP TO SPEAK</button>
+                </div>
+            </div>
+            <div class="card-nav">
+                <button class="card-arrow" id="prevArrow" onclick="app.prev()">‹</button>
+                <div class="card-dots" id="cardDots"></div>
+                <button class="card-arrow" id="nextArrow" onclick="app.next()">›</button>
+            </div>
+            <div class="card-counter" id="cardCounter"></div>
+        </div>
     </div>
     <div class="category-bar" id="categoryBar"></div>
     <div class="bottom-nav">
@@ -2665,26 +2816,283 @@ function updateTopicDisplay() {
     }
 }
 
+// ===== BUBBLE DRAG-TO-SPEAK SYSTEM =====
+
+// Gamification state
+let bubblePopCount = 0;
+let comboCount = 0;
+let lastPopTime = 0;
+const COMBO_WINDOW = 4000;
+
+// Sentence builder state
+let sentencePhrases = [];
+
+function getThemeForSource(source) {
+    if (!source) return 'theme-suggestion';
+    if (source.includes('match')) return 'theme-match';
+    if (source.includes('remembered') || source.includes('🧠')) return 'theme-memory';
+    if (source.includes('contextual') || source.includes('✨')) return 'theme-context';
+    if (source.includes('learned') || source.includes('📊')) return 'theme-learned';
+    return 'theme-suggestion';
+}
+
+function getConfidenceClass(score) {
+    if (score >= 12) return 'confidence-high';
+    if (score >= 6) return 'confidence-med';
+    return 'confidence-low';
+}
+
+function createSparkles(cx, cy) {
+    const colors = ['rgba(108,99,255,0.7)','rgba(78,205,196,0.7)','rgba(255,217,61,0.7)','rgba(255,107,107,0.7)','rgba(255,255,255,0.5)'];
+    for (let i = 0; i < 8; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.style.cssText = `position:fixed; width:${3+Math.random()*4}px; height:${3+Math.random()*4}px; border-radius:50%; background:${colors[i%colors.length]}; pointer-events:none; z-index:1000; left:${cx}px; top:${cy}px; transition:all 0.5s cubic-bezier(0.25,0.46,0.45,0.94);`;
+        document.body.appendChild(sparkle);
+        const angle = (i/8) * Math.PI * 2 + (Math.random()-0.5)*0.5;
+        const dist = 30 + Math.random()*40;
+        requestAnimationFrame(() => {
+            sparkle.style.left = cx + Math.cos(angle)*dist + 'px';
+            sparkle.style.top = cy + Math.sin(angle)*dist + 'px';
+            sparkle.style.opacity = '0';
+            sparkle.style.transform = 'scale(0)';
+        });
+        setTimeout(() => sparkle.remove(), 600);
+    }
+}
+
+function updatePopCounter() {
+    let counter = document.getElementById('bubbleCounter');
+    if (!counter) {
+        counter = document.createElement('div');
+        counter.id = 'bubbleCounter';
+        counter.className = 'bubble-counter';
+        document.body.appendChild(counter);
+    }
+    counter.innerHTML = `🫧 <span class="counter-num">${bubblePopCount}</span>`;
+    counter.classList.add('visible');
+    const milestones = {1:'First bubble! 🌅', 10:'10 pops! ⭐', 25:'25 — on a roll! 🔥', 50:'50 pops today! 🏆', 100:'100! Incredible! 🎆'};
+    if (milestones[bubblePopCount]) {
+        const ms = document.createElement('div');
+        ms.className = 'milestone-toast';
+        ms.textContent = milestones[bubblePopCount];
+        document.body.appendChild(ms);
+        setTimeout(() => ms.remove(), 4000);
+    }
+}
+
+function checkCombo() {
+    const now = Date.now();
+    if (now - lastPopTime < COMBO_WINDOW) {
+        comboCount++;
+        if (comboCount >= 3) {
+            const badge = document.createElement('div');
+            badge.className = 'combo-badge';
+            badge.textContent = `🔥 ${comboCount}x Combo!`;
+            document.body.appendChild(badge);
+            setTimeout(() => badge.remove(), 1500);
+        }
+    } else { comboCount = 1; }
+    lastPopTime = now;
+}
+
+function popBubbleAtPosition(el, cx, cy) {
+    createSparkles(cx, cy);
+    const particles = document.createElement('div');
+    particles.className = 'pop-particles';
+    el.appendChild(particles);
+    el.classList.add('fitting');
+    
+    const text = el.dataset.text || el.textContent;
+    const ghost = document.createElement('div');
+    ghost.className = 'pop-ghost';
+    ghost.textContent = text.length > 35 ? text.slice(0,35) + '…' : text;
+    ghost.style.left = Math.max(10, cx - 80) + 'px';
+    ghost.style.top = cy - 20 + 'px';
+    document.body.appendChild(ghost);
+    setTimeout(() => ghost.remove(), 1300);
+    
+    bubblePopCount++;
+    updatePopCounter();
+    checkCombo();
+}
+
+// ===== DRAG HANDLER — the core interaction =====
+function initBubbleDrag(container) {
+    let dragEl = null;
+    let dragClone = null;
+    let startX = 0, startY = 0;
+    let offsetX = 0, offsetY = 0;
+    let isDragging = false;
+
+    container.addEventListener('touchstart', (e) => {
+        const bubble = e.target.closest('.bubble');
+        if (!bubble) return;
+        
+        const touch = e.touches[0];
+        const rect = bubble.getBoundingClientRect();
+        startX = touch.clientX;
+        startY = touch.clientY;
+        offsetX = touch.clientX - rect.left - rect.width/2;
+        offsetY = touch.clientY - rect.top - rect.height/2;
+        dragEl = bubble;
+        isDragging = false;
+        
+        // Visual feedback — bubble knows it's being held
+        setTimeout(() => {
+            if (dragEl === bubble) {
+                bubble.classList.add('nearby');
+            }
+        }, 100);
+    }, {passive:true});
+
+    container.addEventListener('touchmove', (e) => {
+        if (!dragEl) return;
+        const touch = e.touches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        
+        // Start drag after 8px movement (prevents accidental drags)
+        if (!isDragging && Math.sqrt(dx*dx + dy*dy) > 8) {
+            isDragging = true;
+            // Create a floating clone to drag
+            dragClone = dragEl.cloneNode(true);
+            dragClone.className = dragEl.className + ' dragging';
+            dragClone.style.position = 'fixed';
+            dragClone.style.margin = '0';
+            dragClone.style.zIndex = '500';
+            dragClone.style.pointerEvents = 'none';
+            document.body.appendChild(dragClone);
+            // Dim the original
+            dragEl.classList.add('dimmed');
+            dragEl.classList.remove('nearby');
+            // Dim siblings
+            container.querySelectorAll('.bubble').forEach(b => {
+                if (b !== dragEl) b.classList.add('dimmed');
+            });
+        }
+        
+        if (isDragging && dragClone) {
+            e.preventDefault();
+            const x = touch.clientX - offsetX;
+            const y = touch.clientY - offsetY;
+            dragClone.style.left = x - dragClone.offsetWidth/2 + 'px';
+            dragClone.style.top = y - dragClone.offsetHeight/2 + 'px';
+            
+            // Check proximity to speak zone
+            const speakZone = document.getElementById('speakZone');
+            if (speakZone) {
+                const zr = speakZone.getBoundingClientRect();
+                const withinZone = touch.clientY > zr.top - 30 && touch.clientY < zr.bottom + 10 && touch.clientX > zr.left - 20 && touch.clientX < zr.right + 20;
+                speakZone.classList.toggle('drag-hover', withinZone);
+            }
+        }
+    }, {passive:false});
+
+    container.addEventListener('touchend', (e) => {
+        if (!dragEl) return;
+        const touch = e.changedTouches[0];
+        
+        if (isDragging && dragClone) {
+            // Check if dropped on speak zone
+            const speakZone = document.getElementById('speakZone');
+            let landed = false;
+            if (speakZone) {
+                const zr = speakZone.getBoundingClientRect();
+                const withinZone = touch.clientY > zr.top - 30 && touch.clientY < zr.bottom + 10 && touch.clientX > zr.left - 20 && touch.clientX < zr.right + 20;
+                speakZone.classList.remove('drag-hover');
+                
+                if (withinZone) {
+                    // SPEAK! — bubble fits into zone
+                    const text = dragEl.dataset.text || dragEl.textContent;
+                    const cx = touch.clientX, cy = touch.clientY;
+                    popBubbleAtPosition(dragClone, cx, cy);
+                    speakText(text);
+                    if (app.currentContext) trackUsage(app.currentContext, text);
+                    logFeedback('up', text);
+                    app.renderStats();
+                    landed = true;
+                    
+                    // Remove original, reinflate after delay
+                    const origText = text;
+                    const origClass = dragEl.className.replace(' dimmed','');
+                    const parent = dragEl.parentElement;
+                    dragEl.remove();
+                    setTimeout(() => {
+                        if (parent) {
+                            const newB = document.createElement('div');
+                            newB.className = origClass;
+                            newB.dataset.text = origText;
+                            newB.textContent = origText;
+                            parent.appendChild(newB);
+                        }
+                    }, 2000);
+                    
+                    setTimeout(() => dragClone.remove(), 400);
+                }
+            }
+            
+            if (!landed) {
+                // Not dropped on zone — snap back
+                dragClone.remove();
+                dragEl.classList.remove('dimmed');
+            }
+            
+            // Un-dim all siblings
+            container.querySelectorAll('.bubble').forEach(b => b.classList.remove('dimmed'));
+        } else {
+            // It was a tap (no drag) — also speak! (accessibility fallback)
+            const text = dragEl.dataset.text || dragEl.textContent;
+            const rect = dragEl.getBoundingClientRect();
+            popBubbleAtPosition(dragEl, rect.left + rect.width/2, rect.top + rect.height/2);
+            speakText(text);
+            if (app.currentContext) trackUsage(app.currentContext, text);
+            logFeedback('up', text);
+            app.renderStats();
+            
+            const origText = text;
+            const origClass = dragEl.className.replace(' nearby','');
+            const parent = dragEl.parentElement;
+            setTimeout(() => {
+                dragEl.remove();
+                setTimeout(() => {
+                    if (parent) {
+                        const newB = document.createElement('div');
+                        newB.className = origClass;
+                        newB.dataset.text = origText;
+                        newB.textContent = origText;
+                        parent.appendChild(newB);
+                    }
+                }, 1500);
+            }, 400);
+        }
+        
+        dragEl?.classList.remove('nearby');
+        dragEl = null;
+        dragClone = null;
+        isDragging = false;
+    }, {passive:true});
+}
+
+// Legacy compat — bubblePop for non-drag areas
+function bubblePop(el, text, callback) {
+    const rect = el.getBoundingClientRect();
+    popBubbleAtPosition(el, rect.left + rect.width/2, rect.top + rect.height/2);
+    setTimeout(() => { if (callback) callback(el); }, 350);
+}
+
 function updateSuggestedStrip() {
     const strip = document.getElementById('suggestedStrip');
     const container = document.getElementById('suggestedCards');
     if (suggestedPhrases.length > 0) {
         strip.classList.add('visible');
         container.innerHTML = suggestedPhrases.map((s, i) => {
-            const escaped = s.card.text.replace(/'/g, "\\'");
-            const pct = Math.min(99, Math.round(s.score * 5));
-            let tag = '';
-            if (s.crossContext) tag = ` · ${CARD_DATA[s.crossContext]?.label || s.crossContext}`;
-            if (s.virtual) tag = ' · ➕ add';
-            const sourceTag = s.source ? `<span class="match-source">${s.source}</span>` : '';
-            return `<div class="suggested-card-wrap">
-                <button class="suggested-card${s.virtual?' virtual':''}" onclick="app.speakSuggested('${escaped}'${s.virtual?',true':''})">${s.card.text}<span class="match-score">${pct}%${tag}</span>${sourceTag}</button>
-                <div class="feedback-btns">
-                    <button class="fb-btn fb-up" onclick="event.stopPropagation();logFeedback('up','${escaped}');this.parentElement.innerHTML='✅';" title="Good suggestion">👍</button>
-                    <button class="fb-btn fb-down" onclick="event.stopPropagation();logFeedback('down','${escaped}');this.parentElement.innerHTML='❌ logged';" title="Wrong suggestion">👎</button>
-                </div>
-            </div>`;
+            const escaped = s.card.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const theme = getThemeForSource(s.source);
+            const conf = getConfidenceClass(s.score);
+            const isVirtual = s.virtual ? ' virtual' : '';
+            return `<div class="bubble ${theme} ${conf}${isVirtual}" data-text="${escaped}">${s.card.text}</div>`;
         }).join('');
+        initBubbleDrag(container);
     } else {
         strip.classList.remove('visible');
     }
@@ -2747,17 +3155,116 @@ const app = {
         panel.classList.toggle('open');
     },
 
+    speakBubble(el, text, isVirtual) {
+        // Pop the bubble, then speak
+        bubblePop(el, text, (poppedEl) => {
+            // After pop animation, inflate a new bubble in its place
+            const container = poppedEl.parentElement;
+            poppedEl.remove();
+            
+            // Speak the text
+            speakText(text);
+            if (this.currentContext) trackUsage(this.currentContext, text);
+            logFeedback('up', text); // Auto-log as positive since they chose it
+            this.renderStats();
+            
+            // If virtual card, auto-add
+            if (isVirtual && this.currentContext) {
+                addCustomCard(this.currentContext, text, 'choices');
+                this.cards = getCardsForContext(this.currentContext);
+                this.filteredCards = this.currentCategory === 'all' ? [...this.cards] : this.cards.filter(c => c.cat === this.currentCategory);
+            }
+            
+            // Inflate a replacement bubble from remaining suggestions or next best
+            setTimeout(() => {
+                this.inflateReplacementBubble(container, text);
+            }, 200);
+        });
+    },
+
+    inflateReplacementBubble(container, spokenText) {
+        // Find a card from the context that isn't already showing
+        const showing = new Set([...container.querySelectorAll('.bubble')].map(b => b.dataset.text));
+        showing.add(spokenText);
+        const allCards = this.filteredCards || this.cards || [];
+        const replacement = allCards.find(c => !showing.has(c.text));
+        if (replacement) {
+            const escaped = replacement.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const div = document.createElement('div');
+            div.className = 'bubble theme-suggestion confidence-med';
+            div.dataset.text = escaped;
+            div.textContent = replacement.text;
+            div.onclick = () => this.speakBubble(div, replacement.text);
+            container.appendChild(div);
+        }
+    },
+
+    cardBubbleTap(el, text) {
+        bubblePop(el, text, (poppedEl) => {
+            const container = poppedEl.parentElement;
+            poppedEl.remove();
+            speakText(text);
+            if (this.currentContext) trackUsage(this.currentContext, text);
+            this.renderStats();
+            
+            // Re-inflate the same bubble after TTS finishes (so Ryan can say it again later)
+            setTimeout(() => {
+                const escaped = text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const div = document.createElement('div');
+                div.className = 'bubble theme-card';
+                div.dataset.text = escaped;
+                div.textContent = text;
+                div.onclick = () => this.cardBubbleTap(div, text);
+                container.appendChild(div);
+            }, 2000);
+        });
+    },
+
+    // Sentence builder
+    addToSentence(text) {
+        sentencePhrases.push(text);
+        const builder = document.getElementById('sentenceBuilder');
+        const container = document.getElementById('sentencePhrases');
+        builder.classList.add('visible');
+        container.innerHTML = sentencePhrases.map((p, i) =>
+            `<div class="sentence-phrase" onclick="app.removeSentencePhrase(${i})">${p}</div>`
+        ).join('');
+    },
+
+    removeSentencePhrase(index) {
+        sentencePhrases.splice(index, 1);
+        if (sentencePhrases.length === 0) {
+            document.getElementById('sentenceBuilder').classList.remove('visible');
+        } else {
+            document.getElementById('sentencePhrases').innerHTML = sentencePhrases.map((p, i) =>
+                `<div class="sentence-phrase" onclick="app.removeSentencePhrase(${i})">${p}</div>`
+            ).join('');
+        }
+    },
+
+    speakSentence() {
+        if (sentencePhrases.length === 0) return;
+        const full = sentencePhrases.join('. ');
+        speakText(full);
+        if (this.currentContext) trackUsage(this.currentContext, full);
+        showToast(`🔊 Speaking ${sentencePhrases.length} phrases`);
+    },
+
+    clearSentence() {
+        sentencePhrases = [];
+        document.getElementById('sentenceBuilder').classList.remove('visible');
+        document.getElementById('sentencePhrases').innerHTML = '';
+    },
+
     speakSuggested(text, isVirtual) {
         speakText(text);
         if (this.currentContext) trackUsage(this.currentContext, text);
         this.renderStats();
-        // If virtual card (not in any context), auto-add to current context
         if (isVirtual && this.currentContext) {
             addCustomCard(this.currentContext, text, 'choices');
-            // Refresh cards
             this.cards = getCardsForContext(this.currentContext);
             this.filteredCards = this.currentCategory === 'all' ? [...this.cards] : this.cards.filter(c => c.cat === this.currentCategory);
-            showToast('✅ "' + text.substring(0,30) + '..." added to your phrases');
+            showToast('✅ Added to your phrases');
         }
     },
 
@@ -2833,24 +3340,44 @@ const app = {
             ]},
         ];
 
-        let html = '';
+        let html = '<div class="speak-zone" id="speakZone"><span class="zone-icon">🔊</span><span>Drag here to speak</span></div>';
         groups.forEach(g => {
             html += `<div class="sos-group ${g.color}">`;
             html += `<div class="sos-group-label ${g.color}">${g.label}</div>`;
-            html += `<div class="sos-grid">`;
+            html += `<div class="bubble-field" data-sos-group="${g.id}">`;
             g.phrases.forEach(p => {
-                const escaped = p.text.replace(/'/g, "\\'");
-                html += `<button class="sos-btn${p.full?' full-width':''}" onclick="app.sosTap(this,'${escaped}')"><span class="sos-icon">${p.icon}</span>${p.text}</button>`;
+                const escaped = p.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                html += `<div class="bubble theme-sos-${g.id}" data-text="${escaped}">${p.icon} ${p.text}</div>`;
             });
             html += `</div></div>`;
         });
         document.getElementById('sosContent').innerHTML = html;
+        // Init drag on each SOS group's bubble field
+        document.querySelectorAll('#sosContent .bubble-field').forEach(bf => initBubbleDrag(bf));
+    },
+
+    sosBubbleTap(el, text) {
+        bubblePop(el, text, (poppedEl) => {
+            const container = poppedEl.parentElement;
+            poppedEl.remove();
+            speakText(text);
+            trackUsage('sensory', text);
+            // SOS phrases regenerate — re-add after a brief delay
+            setTimeout(() => {
+                const escaped = text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const theme = container.closest('.sos-group')?.classList[1] || 'needs';
+                const div = document.createElement('div');
+                div.className = `bubble theme-sos-${theme}`;
+                div.dataset.text = escaped;
+                div.textContent = poppedEl.textContent;
+                div.onclick = () => this.sosBubbleTap(div, text);
+                container.appendChild(div);
+            }, 1500);
+        });
     },
 
     sosTap(el, text) {
-        // Visual feedback
-        document.querySelectorAll('.sos-btn').forEach(b => b.classList.remove('speaking-active'));
-        el.classList.add('speaking-active');
+        // Legacy fallback
         speakText(text);
         trackUsage('sensory', text);
         setTimeout(() => el.classList.remove('speaking-active'), 2000);
@@ -2927,12 +3454,19 @@ const app = {
         const starters = TOPIC_STARTERS[topicId] || TOPIC_STARTERS._default;
         const panel = document.getElementById('starterPanel');
         document.getElementById('starterHeader').textContent = `${icon} ${name} — What do you want to say?`;
-        document.getElementById('starterCards').innerHTML = starters.map(s => {
-            const escaped = s.text.replace(/'/g, "\\'");
-            return `<button class="starter-btn" onclick="app.speakStarter('${escaped}','${topicId}')"><span class="starter-icon">${s.icon || '💬'}</span>${s.text}${s.hint ? `<span class="starter-hint">${s.hint}</span>` : ''}</button>`;
-        }).join('');
+        document.getElementById('starterCards').innerHTML = `<div class="bubble-field">${starters.map(s => {
+            const escaped = s.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `<div class="bubble theme-starter" data-text="${escaped}" onclick="app.starterBubbleTap(this,'${escaped}','${topicId}')">${s.icon || '💬'} ${s.text}</div>`;
+        }).join('')}</div>`;
         panel.classList.add('visible');
         panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+    },
+
+    starterBubbleTap(el, text, topicId) {
+        bubblePop(el, text, (poppedEl) => {
+            poppedEl.remove();
+            this.speakStarter(text, topicId);
+        });
     },
 
     speakStarter(text, topicId) {
@@ -3078,6 +3612,25 @@ const app = {
 
     updateCard() {
         const fc = this.filteredCards;
+
+        // === BUBBLE VIEW: render all cards as bubbles ===
+        const bubbleField = document.getElementById('cardBubbleField');
+        if (bubbleField) {
+            if (!fc.length) {
+                bubbleField.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;">No phrases here yet.</div>';
+            } else {
+                const d = loadData();
+                bubbleField.innerHTML = fc.map(card => {
+                    const escaped = card.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const useCount = getCardScore(this.currentContext, card.text);
+                    const levelled = useCount >= 10 ? ' levelled' : '';
+                    return `<div class="bubble theme-card${levelled}" data-text="${escaped}">${card.text}</div>`;
+                }).join('');
+                initBubbleDrag(bubbleField);
+            }
+        }
+
+        // === SWIPE VIEW (kept for fallback) ===
         const subEl = document.getElementById('phraseSub');
         const freqEl = document.getElementById('cardFreqBadge');
         subEl.style.display = 'none';

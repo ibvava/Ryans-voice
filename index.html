@@ -202,6 +202,16 @@
         .suggested-strip { display:none; padding:10px 14px 12px; background:rgba(108,99,255,0.04); border-bottom:1px solid var(--border-subtle); flex-shrink:0; }
         .suggested-strip.visible { display:block; }
         .suggested-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--accent-glow); margin-bottom:8px; }
+        /* Suggestion strip — horizontal scrollable, tap-to-speak (NOT drag) */
+        .suggested-strip .bubble-field { touch-action:pan-x; }
+        .suggested-strip .bubble { touch-action:pan-x; cursor:pointer; }
+        .suggested-wrap { position:relative; display:inline-flex; flex-direction:column; align-items:center; flex-shrink:0; gap:4px; }
+        .suggested-wrap .fb-row { display:flex; gap:4px; }
+        .suggested-wrap .fb-btn { width:28px; height:28px; border-radius:50%; border:1.5px solid var(--border-subtle); background:var(--bg-card); font-size:13px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.12s; }
+        .suggested-wrap .fb-btn:active { transform:scale(0.85); }
+        .suggested-wrap .fb-btn.fb-up:active { border-color:rgba(78,205,196,0.5); background:rgba(78,205,196,0.15); }
+        .suggested-wrap .fb-btn.fb-down:active { border-color:rgba(255,107,107,0.5); background:rgba(255,107,107,0.15); }
+        .suggested-wrap .fb-done { font-size:11px; color:var(--text-muted); font-weight:600; }
 
         /* ===== BUBBLE SYSTEM ===== */
         @keyframes bubbleInflate { 0% { transform:scale(0); opacity:0; } 50% { transform:scale(1.12); } 70% { transform:scale(0.96); } 100% { transform:scale(1); opacity:1; } }
@@ -3090,9 +3100,14 @@ function updateSuggestedStrip() {
             const theme = getThemeForSource(s.source);
             const conf = getConfidenceClass(s.score);
             const isVirtual = s.virtual ? ' virtual' : '';
-            return `<div class="bubble ${theme} ${conf}${isVirtual}" data-text="${escaped}">${s.card.text}</div>`;
+            return `<div class="suggested-wrap">
+                <div class="bubble ${theme} ${conf}${isVirtual}" data-text="${escaped}" onclick="app.tapSuggestion(this,'${escaped}'${s.virtual?',true':''})">${s.card.text}</div>
+                <div class="fb-row" id="fb_${i}">
+                    <button class="fb-btn fb-up" onclick="event.stopPropagation();logFeedback('up','${escaped}');document.getElementById('fb_${i}').innerHTML='<span class=fb-done>✅</span>';">👍</button>
+                    <button class="fb-btn fb-down" onclick="event.stopPropagation();logFeedback('down','${escaped}');document.getElementById('fb_${i}').innerHTML='<span class=fb-done>❌</span>';">👎</button>
+                </div>
+            </div>`;
         }).join('');
-        initBubbleDrag(container);
     } else {
         strip.classList.remove('visible');
     }
@@ -3254,6 +3269,30 @@ const app = {
         sentencePhrases = [];
         document.getElementById('sentenceBuilder').classList.remove('visible');
         document.getElementById('sentencePhrases').innerHTML = '';
+    },
+
+    tapSuggestion(el, text, isVirtual) {
+        // Pop animation on the bubble
+        const rect = el.getBoundingClientRect();
+        popBubbleAtPosition(el, rect.left + rect.width/2, rect.top + rect.height/2);
+        
+        // Speak
+        speakText(text);
+        if (this.currentContext) trackUsage(this.currentContext, text);
+        logFeedback('up', text);
+        this.renderStats();
+        
+        // Virtual card — auto-add
+        if (isVirtual && this.currentContext) {
+            addCustomCard(this.currentContext, text, 'choices');
+            this.cards = getCardsForContext(this.currentContext);
+            this.filteredCards = this.currentCategory === 'all' ? [...this.cards] : this.cards.filter(c => c.cat === this.currentCategory);
+            showToast('✅ Added to your phrases');
+        }
+        
+        // Remove the wrapper after pop
+        const wrap = el.closest('.suggested-wrap');
+        setTimeout(() => { if (wrap) wrap.remove(); }, 400);
     },
 
     speakSuggested(text, isVirtual) {

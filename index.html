@@ -11,6 +11,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>Ryan's Voice</title>
+    <meta name="version" content="2.8.0">
+    <meta name="author" content="IV">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
@@ -115,6 +117,19 @@
 
         /* Settings */
         .settings-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:24px 20px calc(var(--safe-bottom) + 80px); }
+
+        /* Version & copyright footer */
+        .app-version-footer { text-align:center; padding:30px 20px 10px; margin-top:20px; border-top:1px solid var(--border-subtle); }
+        .app-version-footer .version-name { font-family:'DM Serif Display',serif; font-size:20px; color:var(--text-primary); margin-bottom:4px; }
+        .app-version-footer .version-number { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:var(--accent-primary); margin-bottom:4px; }
+        .app-version-footer .version-copyright { font-size:11px; color:var(--text-muted); margin-bottom:10px; }
+        .app-version-footer .version-changelog { font-size:12px; color:var(--accent-glow); cursor:pointer; font-weight:600; margin-bottom:6px; }
+        .app-version-footer .version-changelog:active { opacity:0.6; }
+        .version-changelog-content { display:none; text-align:left; font-size:11px; color:var(--text-secondary); line-height:1.6; padding:10px; background:var(--bg-deep); border-radius:var(--radius-md); margin-top:6px; }
+        .version-changelog-content.visible { display:block; }
+        .version-changelog-content .vlog-entry { margin-bottom:10px; }
+        .version-changelog-content .vlog-ver { font-weight:700; color:var(--accent-primary); }
+        .version-changelog-content .vlog-date { color:var(--text-muted); margin-left:6px; }
         .settings-section { margin-bottom:24px; }
         .settings-section-title { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:4px; }
         .settings-section-desc { font-size:13px; color:var(--text-muted); margin-bottom:14px; }
@@ -699,6 +714,13 @@
             <div class="settings-section-desc">Clear all usage history and custom phrases.</div>
             <button class="modal-btn cancel" style="max-width:200px;" onclick="if(confirm('Reset all data? This cannot be undone.')){localStorage.removeItem('ryans-aac-data');showToast('Data reset','success');app.renderHome();}">Reset All Data</button>
         </div>
+        <div class="app-version-footer">
+            <div class="version-name">Ryan's Voice</div>
+            <div class="version-number" id="versionDisplay"></div>
+            <div class="version-copyright" id="copyrightDisplay"></div>
+            <div class="version-changelog" id="changelogToggle" onclick="document.getElementById('changelogContent').classList.toggle('visible')">View changelog ▾</div>
+            <div class="version-changelog-content" id="changelogContent"></div>
+        </div>
     </div>
     <div class="settings-bottom-nav">
         <button class="settings-home-btn" onclick="app.goHome()">🏠 Back to Home</button>
@@ -739,6 +761,29 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ============================================================
+// APP VERSION & COPYRIGHT
+// ============================================================
+const APP_VERSION = {
+    name: "Ryan's Voice",
+    version: "2.8.0",
+    build: "2026.02.14b",
+    copyright: "© 2026 IV. All rights reserved.",
+    license: "Built with love for Ryan.",
+    changelog: [
+        { ver:"2.8.0", date:"2026-02-14", notes:"100% contextual coverage: filled 107 missing topic×questionType gaps across all 39 topics. Every topic now handles yesno, choice, preference, opinion, status, and review. Expanded from 188 to 303 response entries." },
+        { ver:"2.7.0", date:"2026-02-14", notes:"Drag-to-speak interaction model. Contextual suggestion injection into bubble field. Expanded shopping & topic responses. Phrase edit/delete via long-press. Sentence builder. Version & copyright system." },
+        { ver:"2.6.0", date:"2026-02-13", notes:"Glassy bubble UI with translucent aesthetics. Gamification: pop counter, sparkles, combos, milestones, levelled bubbles. Bubbles everywhere: suggestions, SOS, topic launcher, card browse." },
+        { ver:"2.5.0", date:"2026-02-12", notes:"Prediction engine v2: n-gram sequences, time-of-day patterns, category preferences, session fatigue detection. Cross-context suggestions. Feedback 👍👎 system." },
+        { ver:"2.4.0", date:"2026-02-11", notes:"Speech correction engine (3-level: phrase, word, phonetic). Conversation memory with topic anchoring. Slot-filled virtual suggestions." },
+        { ver:"2.3.0", date:"2026-02-10", notes:"Contextual response matrix (40+ topics × 8 question types). Topic launcher with starter phrases. Question type classification." },
+        { ver:"2.2.0", date:"2026-02-09", notes:"SOS dashboard with 7 sensory categories. Dev report with email/download. Carer feedback form. Error logging." },
+        { ver:"2.1.0", date:"2026-02-09", notes:"Listening mode with Web Speech API. Topic detection. Suggestion strip. Male voice TTS selection." },
+        { ver:"2.0.0", date:"2026-02-08", notes:"Complete rebuild as single HTML file. Dark theme. 8 contexts, 200+ phrases. Adaptive scoring. Custom phrase editor." },
+        { ver:"1.0.0", date:"2026-02-07", notes:"Initial prototype. Card swipe interface. 4 contexts. Basic TTS. Deployed to GitHub Pages." },
+    ]
+};
+
 // ============================================================
 // CARD DATA — 200+ phrases across 8 contexts
 // ============================================================
@@ -2309,9 +2354,192 @@ const CONTEXTUAL_RESPONSES = {
     // ---- EMOTIONS COMPLEX ----
     'emotions_complex:wellbeing':  ["I'm feeling conflicted about something.","I have mixed emotions right now.","I'm feeling quite vulnerable today.","I'm inspired and want to channel that."],
     'emotions_complex:explanation':["It's a complicated feeling to articulate.","I think I'm processing multiple emotions simultaneously.","Part of me feels one way, part another.","The feeling is nuanced — not simply good or bad."],
+    'emotions_complex:yesno':     ["Yes, I'm feeling a lot right now.","Not really — I'm fairly neutral.","A bit, but I can manage.","I'm not sure how to answer that."],
+    'emotions_complex:choice':    ["I'd like to talk about it.","I'd rather process it quietly.","Can we do something to distract me?","I need to write it down."],
+    'emotions_complex:preference':["I prefer to work through feelings privately.","Talking helps me process things.","I find writing about emotions easier than speaking.","I'd rather not dwell on it."],
+    'emotions_complex:opinion':   ["I think emotions are more complex than people assume.","I believe it's important to acknowledge difficult feelings.","I think there's value in sitting with discomfort.","I reckon most people oversimplify how they feel."],
+    'emotions_complex:status':    ["I'm working through it.","I feel better than earlier.","Still processing.","I've reached some clarity, actually.","It comes and goes in waves."],
+    'emotions_complex:review':    ["That conversation actually helped.","I feel like I understand myself better now.","It was hard but worthwhile.","I'm glad I expressed that."],
 
     // ---- MANNERS ----
     'manners:yesno':      ["Yes, please.","No, thank you.","That's very kind of you.","I'd appreciate that.","Excuse me, could I have a moment?"],
+    'manners:choice':     ["I'd like that one, please.","Either would be fine, thank you.","May I have the first option?","I'll take whichever is easier."],
+    'manners:preference': ["I prefer when people ask before helping.","I appreciate directness.","I value patience.","I prefer to say things in my own time."],
+    'manners:opinion':    ["I think kindness costs nothing.","Respect goes both ways.","I believe everyone deserves politeness.","Good manners reflect character."],
+    'manners:status':     ["I've said thank you.","I need to apologise for something.","I remembered to ask politely.","I should write a thank-you note."],
+    'manners:review':     ["That was a really kind thing to do.","I appreciated how patient they were.","People were very understanding.","That interaction went well."],
+
+    // ---- APPEARANCE (fill gaps) ----
+    'appearance:status':  ["I'm dressed and ready.","Still deciding what to wear.","I need to change — this isn't comfortable.","I'm happy with this outfit."],
+    'appearance:review':  ["I liked what I wore today.","That outfit wasn't comfortable.","I got compliments on my clothes.","I should have worn something warmer."],
+    'appearance:preference':["I prefer comfortable clothes over fashionable.","I like dark colours.","Soft fabrics are important to me.","I don't like tight clothing.","Hoodies are my go-to."],
+
+    // ---- ART (fill gaps) ----
+    'art:yesno':          ["Yes, I'd love to do art.","Not right now.","Maybe later — I need the right mood.","Can I choose what to make?"],
+    'art:preference':     ["I prefer drawing to painting.","Digital art is fascinating.","I like working with bold colours.","I enjoy detailed, precise work.","Abstract art intrigues me."],
+    'art:status':         ["I'm still working on it.","It's finished — what do you think?","I need more time.","I'm happy with how it's going.","I want to start over."],
+
+    // ---- BATHROOM (fill gaps) ----
+    'bathroom:choice':    ["I need the bathroom now.","Can I go after this?","I'll be quick.","Is there one nearby?"],
+    'bathroom:preference':["I prefer privacy.","I don't need help.","I'd rather use the one that's less busy.","Can I go alone?"],
+    'bathroom:opinion':   ["I think I should go now before it's too late.","The bathroom is too far away.","I don't want to interrupt, but I need to go."],
+    'bathroom:review':    ["I feel better now.","That took longer than expected.","I'm ready to continue."],
+
+    // ---- BODY (fill gaps) ----
+    'body:yesno':         ["Yes, something hurts.","No, I'm physically fine.","A bit — my muscles are stiff.","It's getting better.","I think I need to rest."],
+    'body:choice':        ["I need to sit down.","Can I stretch?","I'd like some paracetamol.","A hot water bottle would help.","I need to lie down."],
+    'body:preference':    ["I prefer sitting to standing.","I need to move around regularly.","I like stretching.","I'd rather rest than push through."],
+    'body:opinion':       ["I think I've been sitting too long.","I reckon I need more exercise.","My body is telling me to rest.","I think the pain is from tension."],
+    'body:review':        ["I feel much better after moving.","The rest really helped.","My body feels good today.","Yesterday was rough physically."],
+
+    // ---- CHOICES (fill gaps) ----
+    'choices:yesno':      ["Yes, I've decided.","No, I need more time.","I think so, but I'm not 100% sure.","I'm leaning towards yes."],
+    'choices:preference': ["I prefer having fewer options.","I like weighing the pros and cons.","I'd rather someone else decide.","I prefer to take my time with decisions."],
+    'choices:status':     ["I've made my choice.","Still thinking it through.","I'm torn between two options.","I need more information before deciding."],
+    'choices:review':     ["I'm happy with my decision.","I think I chose well.","I might have picked the other one.","No regrets."],
+
+    // ---- CHORES (fill gaps) ----
+    'chores:choice':      ["I'll do the dishes.","I can tidy my room.","Can I do the easier one?","I'd prefer to vacuum.","Let me help with cooking instead."],
+    'chores:preference':  ["I prefer tidying to cleaning.","I don't mind doing dishes.","I'd rather do it in the morning.","I like having a checklist."],
+    'chores:opinion':     ["I think we should take turns fairly.","That chore is harder than it looks.","I reckon a schedule would help.","I don't think that's my responsibility."],
+    'chores:review':      ["All done — that was satisfying.","It took longer than expected.","The house looks much better now.","I did a good job, I think."],
+
+    // ---- COOKING (fill gaps) ----
+    'cooking:preference': ["I prefer baking to cooking.","I like simple recipes.","I enjoy measuring ingredients precisely.","I prefer sweet over savoury.","I like cooking when there's no time pressure."],
+    'cooking:opinion':    ["I think this recipe looks good.","It needs more seasoning.","The presentation matters.","I reckon we should try something new."],
+    'cooking:review':     ["That turned out really well.","It didn't taste quite right.","The best thing I've helped make.","We should make that again.","I burned my part — but I learned from it."],
+
+    // ---- DRINK (fill gaps) ----
+    'drink:preference':   ["I prefer cold drinks.","Water is my go-to.","I like hot chocolate in winter.","I don't like fizzy drinks much.","Juice is refreshing."],
+    'drink:opinion':      ["This tastes really good.","It's a bit too sweet.","I think I prefer the other one.","The temperature is perfect."],
+    'drink:status':       ["I've finished my drink.","I need a refill.","I'm still drinking.","I haven't started yet.","Almost done."],
+    'drink:review':       ["That was refreshing.","I didn't like the taste.","Best hot chocolate ever.","I should drink more water."],
+
+    // ---- ENGLISH (fill gaps) ----
+    'english:yesno':      ["Yes, I've read it.","Not yet — I need more time.","I'm working through it now.","Yes, and I have some thoughts on it.","I understand the main themes."],
+
+    // ---- FEELINGS (fill gaps) ----
+    'feelings:choice':    ["I'd like to talk about it.","I'd rather be distracted.","Can we go somewhere quiet?","I want to write about it.","I'd like to be alone for a bit."],
+    'feelings:preference':["I prefer to express feelings through writing.","I process emotions better alone.","I like it when people just listen without advice.","I prefer calm environments when I'm emotional."],
+    'feelings:opinion':   ["I think feelings deserve to be taken seriously.","I believe everyone processes emotions differently.","I reckon it's healthy to acknowledge how you feel.","Emotions aren't weaknesses — they're information."],
+    'feelings:status':    ["I'm feeling okay right now.","I'm in a good mood today.","I've been feeling off all day.","I'm gradually feeling better.","I'm not sure how I feel yet."],
+
+    // ---- FRIENDS (fill gaps) ----
+    'friends:preference': ["I prefer one-on-one catchups.","I like friends who understand me.","I'd rather meet somewhere quiet.","I prefer online gaming together to meeting in person sometimes."],
+    'friends:status':     ["I've messaged them.","I haven't heard back yet.","We made plans for next week.","I'm looking forward to seeing them.","We haven't talked in a while."],
+
+    // ---- GAMING (fill gaps) ----
+    'gaming:status':      ["I'm in the middle of a level.","I'm almost done.","I just started — give me a few minutes.","I've been playing for a while.","Save point reached — I can stop now."],
+
+    // ---- HEALTH (fill gaps) ----
+    'health:choice':      ["I'd like to rest.","Can I have some medicine?","A cold pack would help.","I need to lie down.","Can we see the doctor?"],
+    'health:preference':  ["I prefer rest to medicine.","I'd rather wait and see if it passes.","I like having a heat pack.","I prefer the liquid medicine."],
+    'health:opinion':     ["I think I'm getting a cold.","I reckon it's just tiredness.","It might be from not sleeping well.","I think I need to see a professional."],
+    'health:review':      ["I'm feeling much better now.","The medicine helped.","It was worse than I thought.","I'm recovering well.","That was a rough couple of days."],
+
+    // ---- HELPING (fill gaps) ----
+    'helping:preference': ["I prefer to help in ways I'm good at.","I like being useful.","I'd rather help with thinking tasks than physical ones.","I prefer to be asked, not told."],
+    'helping:opinion':    ["I think everyone should contribute.","I appreciate when people help me too.","It feels good to be helpful.","I think teamwork makes things easier."],
+    'helping:status':     ["I've finished helping.","I'm still working on it.","I did my part.","I could do more if needed."],
+    'helping:review':     ["That felt good to contribute.","I'm glad I could help.","It was harder than I expected.","We made a good team."],
+
+    // ---- HOLIDAYS (fill gaps) ----
+    'holidays:status':    ["I'm packed and ready.","I still need to prepare.","I've been counting down the days.","I'm not sure what to expect.","I need my headphones and comfort items."],
+
+    // ---- HOMEWORK (fill gaps) ----
+    'homework:choice':    ["I'll start with maths.","Can I do the easiest one first?","I'd like help choosing where to start.","Let me do the interesting one first."],
+    'homework:preference':["I prefer working independently.","I like having background music while studying.","I work better in short bursts.","I prefer maths homework to writing assignments."],
+    'homework:review':    ["I did well on that one.","It was harder than I expected.","I feel confident about my answers.","I think I need to review one section.","That was a productive study session."],
+    'homework:need':      ["I need help understanding the question.","I need more time.","I need a calculator.","I need a break before continuing.","I need someone to check my work."],
+
+    // ---- HYGIENE (fill gaps) ----
+    'hygiene:preference': ["I prefer showers to baths.","I like warm water.","I'd rather do it myself.","I prefer minty toothpaste."],
+    'hygiene:opinion':    ["I think I should shower now.","I don't think I need to wash my hair today.","I feel better when I'm clean."],
+    'hygiene:review':     ["I feel refreshed now.","That shower was perfect.","I remembered everything on my list."],
+
+    // ---- LEARNING (fill gaps) ----
+    'learning:choice':    ["I'd like to learn more about maths.","Can we try a different approach?","I want to explore that concept further.","Show me a practical example."],
+    'learning:preference':["I learn best through visual examples.","I prefer to figure things out myself.","Step-by-step explanations work for me.","I prefer hands-on learning."],
+    'learning:review':    ["That lesson really clicked.","I didn't quite follow all of it.","I feel like I've made real progress.","The examples made all the difference."],
+
+    // ---- MONEY (fill gaps) ----
+    'money:preference':   ["I prefer saving to spending.","I like knowing exactly what things cost.","I'd rather buy quality that lasts.","I prefer to compare prices first."],
+    'money:review':       ["That was a good purchase.","I'm glad I saved up for it.","It wasn't worth the money.","I should have waited for a sale."],
+    'money:status':       ["I've saved enough.","I need to save more.","I've just spent most of my money.","I'm on budget.","I need to check my balance."],
+
+    // ---- MOVIES/TV (fill gaps) ----
+    'movies_tv:status':   ["I'm halfway through the episode.","I just finished it.","I haven't started yet.","Can I watch one more episode?","I need to pause — I'll come back to it."],
+
+    // ---- OUTINGS (fill gaps) ----
+    'outings:status':     ["I'm ready to go.","I need a few more minutes.","I've got everything I need.","I need my headphones.","I'm packed."],
+
+    // ---- PETS (fill gaps) ----
+    'pets:choice':        ["I want to walk the dog.","Can I feed them?","I'd like to play with them.","Can we get a new toy for them?"],
+    'pets:preference':    ["I love dogs.","Cats are wonderful companions.","I prefer animals that are calm.","I like watching fish — it's relaxing."],
+    'pets:opinion':       ["I think they need more exercise.","They seem happy today.","I reckon they're hungry.","I think we should take better care of them."],
+    'pets:status':        ["I've fed them.","They need a walk.","They've been outside already.","I cleaned their area.","They need fresh water."],
+
+    // ---- READING (fill gaps) ----
+    'reading:yesno':      ["Yes, I've been reading.","No, I haven't started yet.","I'm nearly finished.","Yes, and it's excellent.","Not yet — I've been busy."],
+    'reading:opinion':    ["I think the author's style is distinctive.","The plot is more complex than I expected.","I find the themes genuinely thought-provoking.","The writing is elegant."],
+
+    // ---- ROUTINE (fill gaps) ----
+    'routine:preference': ["I prefer a consistent routine.","I like knowing what's coming next.","I work better with a visual schedule.","I prefer flexibility within structure."],
+    'routine:opinion':    ["I think the current routine works well.","I'd like to adjust my morning routine.","I reckon we could be more efficient.","The routine helps me feel in control."],
+    'routine:review':     ["Today's routine went smoothly.","I missed a step today.","The new routine is working well.","I think we need to adjust the timing."],
+
+    // ---- SCHOOL (fill gaps) ----
+    'school:choice':      ["I'd like to work on maths.","Can we do group work today?","I prefer independent study.","Can I work in a quiet area?","I'd like a challenging task."],
+
+    // ---- SCIENCE (fill gaps) ----
+    'science:choice':     ["I'd like to do an experiment.","Can we study physics today?","I want to learn about space.","Let's explore the hypothesis further.","Chemistry experiments are fascinating."],
+    'science:preference': ["I prefer experiments to theory.","Physics is my favourite branch.","I find the scientific method elegant.","I like when we can test things ourselves."],
+    'science:status':     ["I've finished the experiment.","I'm recording my observations.","I need more data.","The results are interesting.","I'm writing up my conclusion."],
+
+    // ---- SENSORY (fill gaps) ----
+    'sensory:choice':     ["I'd like my headphones.","Can we go somewhere quieter?","I need a dim room.","A weighted blanket would help.","Can I use my fidget?"],
+    'sensory:preference': ["I prefer quiet environments.","I like soft lighting.","I prefer minimal background noise.","I'm sensitive to sudden sounds.","I like deep pressure."],
+    'sensory:opinion':    ["I think this room is too stimulating.","The noise level is manageable.","I reckon the lighting could be softer.","This environment suits me."],
+    'sensory:status':     ["I'm coping well right now.","I'm starting to feel overwhelmed.","I need a sensory break soon.","I'm managing with my headphones.","The environment is comfortable."],
+    'sensory:review':     ["That break really helped.","The quiet space was exactly what I needed.","I feel much calmer now.","My headphones saved me.","Today was easier than usual."],
+
+    // ---- SLEEP (fill gaps) ----
+    'sleep:choice':       ["I want to read before bed.","Can I have some quiet time?","I'd like some warm milk.","Can I listen to music while falling asleep?"],
+    'sleep:preference':   ["I prefer a dark, quiet room.","I like sleeping in on weekends.","I sleep better with a weighted blanket.","I prefer a consistent bedtime."],
+    'sleep:opinion':      ["I think I need more sleep.","I reckon the early mornings are affecting me.","I slept better when I went to bed earlier.","I think screen time before bed affects my sleep."],
+    'sleep:status':       ["I'm ready for bed.","I'm not sleepy yet.","I'm exhausted.","I slept well last night.","I woke up several times."],
+
+    // ---- SPORTS (fill gaps) ----
+    'sports:choice':      ["I'd like to try swimming.","Can we play cricket?","I want to go for a walk.","Something low-impact today.","Can I just watch?"],
+    'sports:opinion':     ["I think exercise is important.","That was harder than I expected.","I prefer individual sports.","The team played well together."],
+    'sports:status':      ["I've done my exercise.","I'm still warming up.","I'm tired from the workout.","I feel energised after that.","I need to cool down."],
+
+    // ---- TECHNOLOGY (fill gaps) ----
+    'technology:preference':["I prefer the iPad to the phone.","I like having my own device.","I prefer apps that are well-designed.","I'd rather use it without help."],
+    'technology:review':   ["The app worked well.","It crashed, which was frustrating.","I discovered a useful feature.","The update made it better.","I prefer the old version."],
+    'technology:need':     ["I need the wifi password.","My device needs charging.","I need to download something.","Can you help me with a setting?","I need more storage."],
+
+    // ---- TIME (fill gaps) ----
+    'time:choice':        ["I'd like to do it now.","Can we do it later?","After lunch would be better.","First thing tomorrow.","I need 10 more minutes."],
+    'time:preference':    ["I prefer mornings.","I work better in the afternoon.","I like having plenty of time, not rushing.","I prefer to plan ahead."],
+    'time:opinion':       ["I think we have enough time.","I reckon we're running late.","I think we should start soon.","Time management is important."],
+    'time:review':        ["We timed that well.","We should have started earlier.","That took longer than expected.","Perfect timing."],
+
+    // ---- TRANSPORT (fill gaps) ----
+    'transport:opinion':  ["I think driving is faster.","The bus is too noisy for me.","I prefer the train — it's smoother.","Walking is nice when the weather is good."],
+    'transport:review':   ["The journey was comfortable.","That ride was too bumpy.","It took longer than usual.","The trip went smoothly.","I prefer the route we took last time."],
+
+    // ---- WAITING (fill gaps) ----
+    'waiting:choice':     ["I'll read while I wait.","Can I use my iPad?","I'll listen to music.","I'd like to walk around.","Can we wait somewhere quieter?"],
+    'waiting:preference': ["I prefer to know how long I'll be waiting.","I'd rather do something while I wait.","I prefer waiting somewhere comfortable.","I don't mind waiting if I have something to do."],
+    'waiting:review':     ["That wasn't as long as I expected.","The wait was worth it.","I managed well while waiting.","Next time, I'll bring something to do."],
+
+    // ---- WEATHER (fill gaps) ----
+    'weather:yesno':      ["Yes, it's nice outside.","No, it's miserable weather.","I think so — let me check.","It looks like it might rain."],
+    'weather:choice':     ["I'd prefer to stay inside today.","Let's go outside — it's beautiful.","Can we go when it cools down?","I'd rather wait for better weather."],
+    'weather:preference': ["I love sunny weather.","I prefer cooler temperatures.","Rain is relaxing to listen to.","I don't like extreme heat.","Overcast days are my favourite."],
+    'weather:status':     ["It's sunny right now.","It's raining outside.","It's getting cloudy.","The weather's perfect for going out.","It's too hot to be outside."],
+    'weather:review':     ["Today's weather was lovely.","It was too hot for me.","The rain was actually refreshing.","I wish the weather had been better."],
 };
 
 // ============================================================
@@ -4269,6 +4497,13 @@ const app = {
         }
 
         pi.innerHTML = piHtml || '<p>Not enough data yet. Keep using the app!</p>';
+
+        // Render version info
+        document.getElementById('versionDisplay').textContent = `v${APP_VERSION.version} (build ${APP_VERSION.build})`;
+        document.getElementById('copyrightDisplay').textContent = APP_VERSION.copyright;
+        document.getElementById('changelogContent').innerHTML = APP_VERSION.changelog.map(e =>
+            `<div class="vlog-entry"><span class="vlog-ver">v${e.ver}</span><span class="vlog-date">${e.date}</span><br>${e.notes}</div>`
+        ).join('');
 
         this.showScreen('settingsScreen');
     },

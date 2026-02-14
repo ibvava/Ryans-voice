@@ -163,7 +163,14 @@
         .modal-btn { flex:1; padding:14px; border-radius:var(--radius-md); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:700; cursor:pointer; border:none; }
         .modal-btn.cancel { background:var(--bg-elevated); color:var(--text-secondary); border:1px solid var(--border-subtle); }
         .modal-btn.save { background:var(--accent-primary); color:white; }
+        .modal-btn.delete { background:rgba(255,107,107,0.12); color:#ff6b6b; border:1.5px solid rgba(255,107,107,0.3); }
+        .modal-btn.delete:active { background:rgba(255,107,107,0.25); }
         .modal-btn:active { transform:scale(0.97); }
+
+        /* Custom bubble indicator — small dot */
+        .bubble.custom-phrase::before { content:'✎'; position:absolute; top:-2px; right:4px; font-size:9px; opacity:0.5; width:auto; height:auto; border-radius:0; background:none; }
+        /* Long press hint ring */
+        .bubble.hold-active { box-shadow:0 0 0 3px rgba(108,99,255,0.3), 0 4px 12px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.15); }
 
         /* Toast */
         .toast { position:fixed; top:calc(var(--safe-top) + 60px); left:50%; transform:translateX(-50%) translateY(-20px); background:var(--bg-elevated); color:var(--text-primary); padding:10px 22px; border-radius:var(--radius-md); font-size:14px; font-weight:600; opacity:0; transition:all 0.3s; pointer-events:none; z-index:1000; border:1px solid var(--border-active); box-shadow:var(--shadow-card); }
@@ -234,8 +241,7 @@
             position:relative; display:inline-flex; align-items:center; justify-content:center; text-align:center;
             padding:14px 20px; border-radius:50px;
             font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600;
-            color:var(--text-primary); cursor:grab; user-select:none; -webkit-user-select:none;
-            touch-action:none;
+            color:var(--text-primary); cursor:pointer; user-select:none; -webkit-user-select:none;
             /* Glassy translucent look */
             background:radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.03) 50%, transparent 70%);
             border:1.5px solid rgba(255,255,255,0.12);
@@ -244,7 +250,7 @@
                 0 4px 12px rgba(0,0,0,0.15),
                 inset 0 1px 1px rgba(255,255,255,0.15),
                 0 1px 3px rgba(0,0,0,0.1);
-            /* Entry animation — NO floating drift, stationary after inflate */
+            /* Entry animation — stationary after inflate */
             animation:bubbleInflate 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
             transition:transform 0.15s, box-shadow 0.15s, opacity 0.15s;
             white-space:nowrap; flex-shrink:0; overflow:hidden;
@@ -339,6 +345,12 @@
 
         /* Pop ghost */
         .pop-ghost { position:fixed; pointer-events:none; font-size:13px; color:var(--accent-glow); font-weight:600; animation:popGhost 1.2s ease-out forwards; z-index:999; white-space:nowrap; text-shadow:0 0 8px rgba(108,99,255,0.3); }
+
+        /* Contextual suggestions injected into bubble field */
+        .contextual-section { width:100%; }
+        .contextual-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); padding:4px 6px 8px; }
+        .contextual-bubbles { background:rgba(108,99,255,0.04); border-radius:16px; padding:10px !important; margin-bottom:4px; }
+        .contextual-divider { height:1px; background:linear-gradient(90deg, transparent, var(--border-subtle), transparent); margin:8px 0; }
         /* Particle ring burst */
         .pop-particles { position:absolute; inset:-10px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); animation:particleBurst 0.5s ease-out forwards; pointer-events:none; }
 
@@ -704,6 +716,22 @@
         <div class="modal-actions">
             <button class="modal-btn cancel" onclick="app.closeAddPhrase()">Cancel</button>
             <button class="modal-btn save" onclick="app.savePhrase()">Add Phrase</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT/DELETE PHRASE MODAL -->
+<div class="modal-overlay" id="editPhraseModal">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="editModalTitle">Edit Phrase</div>
+        <div class="modal-desc" id="editModalDesc">Tap to edit, or delete this phrase.</div>
+        <textarea class="modal-input" id="editPhraseInput" rows="2"></textarea>
+        <div class="modal-category-select" id="editCategorySelect"></div>
+        <div class="modal-actions" style="gap:8px;">
+            <button class="modal-btn cancel" onclick="app.closeEditPhrase()">Cancel</button>
+            <button class="modal-btn delete" onclick="app.deletePhrase()">🗑️ Delete</button>
+            <button class="modal-btn save" onclick="app.saveEditPhrase()">✓ Save</button>
         </div>
     </div>
 </div>
@@ -1154,7 +1182,7 @@ function loadData() {
         if (!d.carerNotes) d.carerNotes = [];              // [{time, note, sessionId}]
         if (!d.topicLauncherLog) d.topicLauncherLog = [];  // [{time, topic, starter}]
         return d;
-    } catch { return {customCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now(),sequences:{},hourBuckets:{},catPrefs:{},sessions:[],dailyPatterns:{},conversationLog:[],errorLog:[],feedback:[],carerNotes:[],topicLauncherLog:[]}; }
+    } catch { return {customCards:{},hiddenCards:{},preferences:{},usage:{},totalSpoken:0,sessionStart:Date.now(),sequences:{},hourBuckets:{},catPrefs:{},sessions:[],dailyPatterns:{},conversationLog:[],errorLog:[],feedback:[],carerNotes:[],topicLauncherLog:[]}; }
 }
 
 function saveData(d) {
@@ -1540,7 +1568,14 @@ function getCardsForContext(contextId) {
     if (!base) return [];
     const d = loadData();
     const custom = d.customCards[contextId] || [];
-    let all = [...base.cards, ...custom];
+    const hidden = (d.hiddenCards && d.hiddenCards[contextId]) || [];
+
+    // Filter out hidden built-in cards
+    let builtIn = base.cards.filter(c => !hidden.includes(c.text));
+    // Mark custom cards
+    let customMarked = custom.map(c => ({...c, custom:true}));
+
+    let all = [...builtIn, ...customMarked];
 
     // Smart reorder: use adaptive score (Phase 2D)
     all.sort((a, b) => {
@@ -1952,11 +1987,20 @@ const TOPIC_CLOUDS = {
 const QUESTION_PATTERNS = [
     // Greeting — highest priority
     {pattern:/\b(how are you|how's it going|how you going|how ya going|how've you been)\b/i, type:'greeting'},
-    // Specific topic choices
+    // Specific topic choices — very targeted
     {pattern:/\b(what.{0,15}(food|eat|dinner|lunch|breakfast|snack|hungry|meal|order|want for))\b/i, type:'food_choice'},
     {pattern:/\b(what.{0,15}(drink|thirsty|beverage|water|juice))\b/i, type:'drink_choice'},
     {pattern:/\b(what.{0,15}(want to do|like to do|activity|play|shall we))\b/i, type:'activity_choice'},
     {pattern:/\b(where.{0,15}(want to go|like to go|should we go|shall we))\b/i, type:'place_choice'},
+    {pattern:/\b(what.{0,20}(buy|get|purchase|look for|looking for|shop for))\b/i, type:'buy_choice'},
+    {pattern:/\b(would you like to (buy|get|shop|purchase))\b/i, type:'buy_choice'},
+    {pattern:/\b(do you want to (buy|get|shop|purchase))\b/i, type:'buy_choice'},
+    {pattern:/\b(what should we (buy|get|shop for))\b/i, type:'buy_choice'},
+    {pattern:/\b(anything you (want|need) to (buy|get))\b/i, type:'buy_choice'},
+    {pattern:/\b(what.{0,15}(wear|put on|dressed))\b/i, type:'wear_choice'},
+    {pattern:/\b(what.{0,15}(watch|see|look at|movie|show|film))\b/i, type:'watch_choice'},
+    {pattern:/\b(what.{0,15}(play|game|playing))\b/i, type:'play_choice'},
+    {pattern:/\b(what.{0,15}(read|book|reading))\b/i, type:'read_choice'},
     // General question types
     {pattern:/\b(what would you like|what do you want|what do you feel like|what would you prefer)\b/i, type:'choice'},
     {pattern:/\b(which one|which do you|pick one|choose)\b/i, type:'choice'},
@@ -1964,6 +2008,7 @@ const QUESTION_PATTERNS = [
     {pattern:/\b(are you ready|have you finished|did you finish|did you do)\b/i, type:'status'},
     {pattern:/\b(what do you think|what's your opinion|reckon)\b/i, type:'opinion'},
     {pattern:/\b(did you like|do you like|enjoy|favourite)\b/i, type:'preference'},
+    {pattern:/\b(do you need|what do you need)\b/i, type:'need'},
     {pattern:/\b(do you want|would you like|wanna|want to)\b/i, type:'yesno'},
     {pattern:/\b(can you|could you|will you|would you)\b/i, type:'yesno'},
     {pattern:/\b(what happened|what's going on|what's up|tell me about)\b/i, type:'narrative'},
@@ -2002,11 +2047,94 @@ const CONTEXTUAL_RESPONSES = {
     'transport:status':   ["I'm ready.","Almost ready.","I need five more minutes.","I can't find my shoes.","I've got everything."],
     'transport:preference':["I like the train better.","I prefer walking.","The car is more comfortable.","I don't like the bus, it's too loud."],
 
-    // ---- SHOPPING ----
-    'shopping:choice':    ["That one, please.","The blue one.","The bigger size.","I like this one better.","Can I try it on?","Neither, let's keep looking.","Both are good."],
-    'shopping:yesno':     ["Yes, I like it.","No, it doesn't fit.","Maybe, let me think.","It's too expensive.","Can we look somewhere else?"],
-    'shopping:opinion':   ["I think it looks good.","It's not really my style.","I prefer the other one.","The colour is nice.","It's too plain."],
-    'shopping:preference':["I like the blue one.","That style is cool.","I prefer something simpler.","I don't like how it feels."],
+    // ---- SHOPPING (expanded for real shopping scenarios) ----
+    'shopping:choice':     ["That one, please.","The blue one.","The bigger size.","I like this one better.","Can I try it on?","Neither, let's keep looking.","Both are good.","The one on the left.","Actually, the other one.","I want to compare them first."],
+    'shopping:buy_choice': ["New clothes, please.","I need new shoes.","Something for gaming.","A book, maybe.","Art supplies.","Snacks and drinks.","Something I've been wanting for a while.","Can I look around first and decide?","Tech stuff.","I have a list — let me show you.","A present for someone.","I'm not sure yet — can we browse?","Something fun.","Stationery for school."],
+    'shopping:yesno':      ["Yes, I like it.","No, it doesn't fit.","Maybe, let me think.","It's too expensive.","Can we look somewhere else?","Yes, let's get it.","No, I changed my mind.","I'm still deciding."],
+    'shopping:opinion':    ["I think it looks good.","It's not really my style.","I prefer the other one.","The colour is nice.","It's too plain.","That's exactly what I wanted.","It's a good price.","I'm not convinced yet.","It's really cool, actually."],
+    'shopping:preference': ["I like the blue one.","That style is cool.","I prefer something simpler.","I don't like how it feels.","I prefer bigger.","The darker colour is better.","I want the one we saw earlier.","I'd rather get the other brand."],
+    'shopping:need':       ["New shoes — mine are worn out.","School supplies.","A new bag.","Clothes that actually fit.","Something for my room.","Headphones.","I need a charger.","Toiletries.","A birthday gift.","Nothing specific, just looking."],
+    'shopping:review':     ["I really like what we got.","Good shopping trip.","I wish we'd found what I wanted.","Can we come back another day?","That was fun.","I'm happy with my choices.","Next time I want to try a different store."],
+    'shopping:status':     ["I've found what I want.","Still looking.","Not yet, give me more time.","I'm ready to pay.","I can't decide.","I think I'm done.","One more thing to find."],
+    'shopping:specific':   ["Over in the electronics section.","I saw it online at Kmart.","It was near the front of the store.","On the top shelf.","In the other aisle.","I think they have it at Target.","Let me check on my phone."],
+    'shopping:explanation':["Because the old one is broken.","I've been wanting this for ages.","It's for a school project.","My friend has one and it's really good.","I outgrew the last one.","It's a better quality one.","Because I saved my money for it."],
+
+    // ---- OUTINGS (going places) ----
+    'outings:choice':      ["The park.","The beach sounds great.","Can we go to the library?","The shopping centre.","Let's go to the movies.","The pool would be fun.","I'd like to go to the museum.","A cafe would be nice.","Somewhere quiet."],
+    'outings:place_choice':["The park.","Beach, definitely.","Can we go shopping?","The library.","I want to go to the movies.","Somewhere new.","The usual place.","Anywhere with food.","Somewhere not too crowded."],
+    'outings:yesno':       ["Yes, I'd love to go!","Not today, I'm tired.","Maybe later?","Can we go after lunch?","Definitely, I've been wanting to.","I'm not in the mood.","Only if it's not too crowded."],
+    'outings:preference':  ["I prefer indoor places.","I like the beach.","Somewhere with not too many people.","I enjoy going to new places.","I'd rather stay close to home."],
+    'outings:opinion':     ["That sounds like fun.","I'm not sure about that.","Great idea!","Can we do something else instead?","I've always wanted to go there."],
+
+    // ---- TECHNOLOGY ----
+    'technology:choice':   ["My iPad.","Can I use the computer?","I want to use my phone.","The Switch.","Can I download an app?","I need the laptop for homework."],
+    'technology:yesno':    ["Yes, it's working now.","No, it's still broken.","I think so.","Not yet — it needs to update.","It's charging.","The WiFi isn't working."],
+    'technology:status':   ["It's charged.","The battery is low.","It's updating.","It crashed.","It's working fine.","I can't log in.","The app won't open."],
+    'technology:need':     ["I need a new charger.","The screen is cracked.","I need more storage.","New headphones.","Can I get a case for it?","I need to update the software."],
+    'technology:opinion':  ["This app is really good.","It's too slow.","The new update is better.","I prefer the old version.","The graphics are amazing.","It keeps crashing — it's frustrating."],
+
+    // ---- APPEARANCE / CLOTHES ----
+    'appearance:choice':    ["The blue shirt.","My hoodie.","Something comfortable.","The new ones.","My favourite outfit.","Whatever's clean.","Something warm."],
+    'appearance:wear_choice':["My hoodie.","The blue shirt.","Something comfortable.","The new ones.","Trackies and a t-shirt.","My favourite jumper.","Something warm.","Does it matter?"],
+    'appearance:yesno':     ["Yes, I'm dressed.","Not yet.","These are fine.","No, I want to change.","Is this okay?","I need something warmer."],
+    'appearance:opinion':   ["I like this outfit.","It's uncomfortable.","The colour's nice.","It doesn't fit properly.","I look good in this.","It's itchy."],
+    'appearance:preference':["I prefer comfortable clothes.","I like dark colours.","Hoodies are the best.","I don't like tight things.","Soft fabric is important."],
+
+    // ---- ROUTINE ----
+    'routine:status':      ["Done.","Almost.","I haven't started yet.","In progress.","Give me a minute.","I forgot — doing it now.","What's next?"],
+    'routine:yesno':       ["Yes, I've done it.","Not yet.","I'm doing it now.","Can I skip it today?","Already done.","Do I have to?"],
+    'routine:choice':      ["Shower first.","Breakfast first, please.","Can I check my phone first?","Teeth first.","I want to get dressed first."],
+    'routine:specific':    ["After breakfast.","Before school.","I do it every morning.","That's part of my evening routine.","I usually do it after dinner."],
+
+    // ---- WAITING ----
+    'waiting:yesno':       ["I can wait.","How much longer?","I'm getting bored.","This is taking forever.","I'm being patient.","Can we do something while we wait?"],
+    'waiting:status':      ["Still waiting.","I've been waiting ages.","It shouldn't be much longer.","I'm okay for now.","Getting impatient, honestly."],
+    'waiting:opinion':     ["This is boring.","I don't mind waiting.","Can I do something while I wait?","I wish it was faster."],
+
+    // ---- HOMEWORK ----
+    'homework:status':     ["Done.","Nearly finished.","I haven't started.","It's hard — I need help.","Halfway through.","I forgot about it.","Submitted already."],
+    'homework:yesno':      ["Yes, I've done it.","No, not yet.","I need help first.","Can I do it later?","Almost — just one more question."],
+    'homework:opinion':    ["It's too easy.","It's quite challenging.","The topic is interesting.","I don't understand the question.","I'd prefer a harder problem.","This is boring."],
+    'homework:need':       ["Help with question 3.","A calculator.","My textbook.","More time.","Someone to explain it.","A quiet space to work."],
+
+    // ---- FRIENDS / SOCIAL ----
+    'friends:yesno':       ["Yes, I'd like to see them.","Not today.","Maybe on the weekend?","Can they come here?","I'll message them.","I'm not sure."],
+    'friends:review':      ["It was fun.","We had a great time.","It was okay.","I wish we could hang out more.","We played games the whole time.","It was a bit awkward."],
+    'friends:opinion':     ["They're really nice.","I like hanging out with them.","We have a lot in common.","I don't know them well yet.","They understand me."],
+    'friends:narrative':   ["We played games together.","We talked about school.","They showed me something cool.","We had an argument but it's fine now.","Nothing much happened."],
+
+    // ---- FEELINGS (emotional check-ins) ----
+    'feelings:wellbeing':  ["I'm doing okay.","Not the best day.","I'm actually feeling good.","A bit anxious.","I'm happy right now.","Tired but okay.","Frustrated about something.","I'd rather not talk about it."],
+    'feelings:yesno':      ["Yes, I'm fine.","Not really.","I think so.","I will be.","Kind of.","Better than yesterday."],
+    'feelings:explanation':["I'm not sure why.","Something happened at school.","I'm just tired.","I've been thinking about something.","It's complicated.","I don't want to talk about it right now.","Everything built up."],
+    'feelings:narrative':  ["I had a tough day.","Something good happened.","I'm worried about tomorrow.","I've been thinking a lot.","Nothing specific — just a feeling."],
+
+    // ---- PETS ----
+    'pets:yesno':          ["Yes, I fed them.","Not yet.","I'll do it now.","They've already been walked.","Can I play with them first?"],
+    'pets:status':         ["Fed and happy.","They need walking.","They're being naughty.","They're sleeping.","They need water."],
+    'pets:opinion':        ["They're so cute.","I love them.","They're being really funny today.","I think they're hungry.","They seem happy."],
+
+    // ---- HOLIDAYS ----
+    'holidays:preference': ["The beach.","Somewhere cold.","Camping would be fun.","A city holiday.","Anywhere with good food.","Somewhere I haven't been."],
+    'holidays:choice':     ["Beach holiday.","Theme park.","Camping.","Visiting family.","Road trip.","Staying home is okay too."],
+    'holidays:yesno':      ["Yes, I'm excited!","Can't wait.","I'm a bit nervous actually.","I need to pack.","I hope the weather's good."],
+    'holidays:opinion':    ["Best holiday ever.","It was relaxing.","I wish we could stay longer.","The food was amazing.","I want to go back."],
+
+    // ---- MONEY ----
+    'money:status':        ["I have enough saved.","I'm still saving.","I need more.","I spent it already.","I have some left."],
+    'money:yesno':         ["Yes, I can afford it.","No, it's too expensive.","Maybe if I save more.","I have my own money.","Can you help me pay?"],
+    'money:opinion':       ["That's a fair price.","Too expensive.","It's a good deal.","Worth saving for.","I should save instead."],
+
+    // ---- COOKING ----
+    'cooking:choice':      ["Can I help stir?","I want to measure the ingredients.","Let me crack the eggs.","I'll watch for now.","Can I taste test?"],
+    'cooking:yesno':       ["Yes, I want to help.","Not right now.","After I wash my hands.","Can I just watch?","Sure, what do you need me to do?"],
+    'cooking:opinion':     ["It smells amazing.","I think it needs more salt.","It looks ready.","Not done yet.","This is fun."],
+
+    // ---- LEARNING ----
+    'learning:yesno':      ["Yes, I understand.","Not quite.","Can you explain it differently?","I think so.","Almost — one more time?","That makes sense now."],
+    'learning:status':     ["I get it now.","Still confused.","Getting there.","I need more practice.","I've mastered it.","Can we move on?"],
+    'learning:opinion':    ["This is interesting.","It's harder than I expected.","I like this approach.","The visual explanation helped.","I prefer working it out myself."],
+    'learning:need':       ["A different explanation.","More time.","An example.","A hint, not the answer.","To try it myself.","A quieter space to think."],
 
     // ---- HEALTH ----
     'health:yesno':       ["Yes, it hurts.","No, I'm feeling okay.","A little bit.","It's getting better.","It's getting worse."],
@@ -2256,22 +2384,17 @@ const SLOT_TEMPLATES = {
         "I thought the {s} was brilliant.",
         "The {s} could have been better, to be honest.",
         "I was pleasantly surprised by the {s}.",
-        "The {s} was somewhat disappointing.",
-        "I'd rate the {s} quite highly.",
     ],
     opinion: [
         "I think the {s} is genuinely interesting.",
         "I have mixed feelings about the {s}.",
         "The {s} raises some good points.",
         "I'm not entirely convinced about the {s}.",
-        "The {s} is more complex than it seems.",
-        "I reckon the {s} has real potential.",
     ],
     preference: [
         "I'm quite fond of the {s}.",
         "The {s} isn't really my thing.",
         "I'd choose the {s} over the alternatives.",
-        "I used to like the {s} more.",
     ],
     yesno: [
         "Yes, the {s} was good.",
@@ -2283,12 +2406,53 @@ const SLOT_TEMPLATES = {
         "I've finished the {s}.",
         "I'm still working on the {s}.",
         "I haven't started the {s} yet.",
-        "The {s} is almost done.",
     ],
     explanation: [
         "The {s} works because of the underlying pattern.",
         "I approached the {s} from a different angle.",
-        "The {s} connects to what we discussed before.",
+    ],
+    choice: [
+        "The {s}, please.",
+        "I'd like the {s}.",
+        "Can I have the {s}?",
+        "The {s} sounds good.",
+        "Not the {s} — something else.",
+    ],
+    buy_choice: [
+        "I'd like to get some {s}.",
+        "Can we look at {s}?",
+        "I want {s}, please.",
+        "I've been wanting {s} for a while.",
+        "New {s} would be great.",
+        "Let's check out the {s} section.",
+    ],
+    wear_choice: [
+        "My {s}.",
+        "The {s}, please.",
+        "Not the {s} — something else.",
+    ],
+    watch_choice: [
+        "I'd like to watch {s}.",
+        "Can we watch {s}?",
+        "{S} sounds good.",
+        "Not {s} — something different.",
+    ],
+    play_choice: [
+        "I want to play {s}.",
+        "Can we play {s}?",
+        "{S} would be fun.",
+        "Not {s} today.",
+    ],
+    food_choice: [
+        "I'd like {s}, please.",
+        "{S} sounds good.",
+        "Can we have {s}?",
+        "Not {s} — something else.",
+    ],
+    need: [
+        "I need {s}.",
+        "Can I have {s}?",
+        "I could really use {s}.",
     ],
 };
 
@@ -2314,6 +2478,12 @@ const GENERIC_RESPONSES = {
     drink_choice:["Water, please.","Juice would be lovely.","A hot chocolate would be great.","Something cold, please.","I'm alright for now, thanks."],
     activity_choice:["I'd like to play a game.","Can we watch something?","I'd like to use the iPad.","Something engaging would be good.","I'd rather stay in, if that's okay.","Something quieter, perhaps."],
     place_choice:["The park would be nice.","I'd prefer to stay home.","Somewhere quiet.","I don't mind — you pick.","Somewhere with a good atmosphere."],
+    buy_choice:["New clothes.","Something for gaming.","A book, maybe.","Snacks.","Can I look around first?","I have something specific in mind.","Art supplies.","Tech stuff.","I'm not sure yet — can we browse?","Something fun."],
+    wear_choice:["Something comfortable.","My hoodie.","Whatever's clean.","Something warm.","The new ones.","I don't mind, you pick.","My favourite outfit."],
+    watch_choice:["Something funny.","A movie.","YouTube.","Something new.","What we watched last time.","I don't mind — you choose.","An action movie.","Something we can all watch."],
+    play_choice:["Minecraft.","Something multiplayer.","A puzzle game.","Something new.","Whatever you want.","Can I pick?","Something we can play together."],
+    read_choice:["Something interesting.","Fiction.","A graphic novel.","The one I'm reading now.","Something new.","Can you recommend one?"],
+    need:["Help, please.","A minute to think.","Some space.","Something to eat.","Someone to talk to.","More time.","A break.","Nothing right now, thanks."],
 };
 
 function initSpeechRecognition() {
@@ -2679,17 +2849,17 @@ function analyseAndSuggest(text, isFinal) {
         }
     }
 
-    // Priority 2: Topic-only match
-    if (primaryTopic && scores.length < 4) {
+    // Priority 2: Topic-only match — pull from ALL entries for this topic
+    if (primaryTopic) {
         for (const [key, responses] of Object.entries(CONTEXTUAL_RESPONSES)) {
             if (key.startsWith(primaryTopic + ':') && responses.length) {
-                addResponses(responses.slice(0,3), 8, '📂 topic');
+                addResponses(responses.slice(0, scores.length < 6 ? 5 : 3), 8, '📂 topic');
             }
         }
     }
 
     // Priority 3: Question-type generic responses
-    if (questionType && scores.length < 4) {
+    if (questionType && scores.length < 8) {
         if (GENERIC_RESPONSES[questionType]) {
             addResponses(GENERIC_RESPONSES[questionType], 6, '❓ type');
         }
@@ -2933,6 +3103,38 @@ function initBubbleDrag(container) {
     let startX = 0, startY = 0;
     let offsetX = 0, offsetY = 0;
     let isDragging = false;
+    let holdTimer = null;
+    let didLongPress = false;
+    let touchHandled = false; // prevents click from also firing after touch
+
+    // === CLICK HANDLER — reliable tap-to-speak fallback ===
+    container.addEventListener('click', (e) => {
+        if (touchHandled) { touchHandled = false; return; }
+        const bubble = e.target.closest('.bubble');
+        if (!bubble) return;
+        const text = bubble.dataset.text || bubble.textContent.trim();
+        if (!text || text === '') return;
+        const rect = bubble.getBoundingClientRect();
+        popBubbleAtPosition(bubble, rect.left + rect.width/2, rect.top + rect.height/2);
+        speakText(text);
+        if (app.currentContext) trackUsage(app.currentContext, text);
+        app.renderStats();
+        // Reinflate
+        const origClass = bubble.className.replace(' fitting','');
+        const parent = bubble.parentElement;
+        setTimeout(() => {
+            bubble.remove();
+            setTimeout(() => {
+                if (parent) {
+                    const newB = document.createElement('div');
+                    newB.className = origClass;
+                    newB.dataset.text = text;
+                    newB.textContent = text;
+                    parent.appendChild(newB);
+                }
+            }, 1500);
+        }, 400);
+    });
 
     container.addEventListener('touchstart', (e) => {
         const bubble = e.target.closest('.bubble');
@@ -2946,6 +3148,19 @@ function initBubbleDrag(container) {
         offsetY = touch.clientY - rect.top - rect.height/2;
         dragEl = bubble;
         isDragging = false;
+        didLongPress = false;
+        
+        // Long-press detection — 500ms hold opens edit modal
+        bubble.classList.add('hold-active');
+        holdTimer = setTimeout(() => {
+            if (dragEl === bubble && !isDragging) {
+                didLongPress = true;
+                bubble.classList.remove('hold-active');
+                const text = bubble.dataset.text || bubble.textContent;
+                app.openEditPhrase(text);
+                dragEl = null;
+            }
+        }, 500);
         
         // Visual feedback — bubble knows it's being held
         setTimeout(() => {
@@ -2964,6 +3179,8 @@ function initBubbleDrag(container) {
         // Start drag after 8px movement (prevents accidental drags)
         if (!isDragging && Math.sqrt(dx*dx + dy*dy) > 8) {
             isDragging = true;
+            clearTimeout(holdTimer);
+            dragEl?.classList.remove('hold-active');
             // Create a floating clone to drag
             dragClone = dragEl.cloneNode(true);
             dragClone.className = dragEl.className + ' dragging';
@@ -2999,7 +3216,9 @@ function initBubbleDrag(container) {
     }, {passive:false});
 
     container.addEventListener('touchend', (e) => {
-        if (!dragEl) return;
+        clearTimeout(holdTimer);
+        dragEl?.classList.remove('hold-active');
+        if (!dragEl || didLongPress) { dragEl = null; return; }
         const touch = e.changedTouches[0];
         
         if (isDragging && dragClone) {
@@ -3013,7 +3232,8 @@ function initBubbleDrag(container) {
                 
                 if (withinZone) {
                     // SPEAK! — bubble fits into zone
-                    const text = dragEl.dataset.text || dragEl.textContent;
+                    touchHandled = true;
+                    const text = dragEl.dataset.text || dragEl.textContent.trim();
                     const cx = touch.clientX, cy = touch.clientY;
                     popBubbleAtPosition(dragClone, cx, cy);
                     speakText(text);
@@ -3050,13 +3270,13 @@ function initBubbleDrag(container) {
             // Un-dim all siblings
             container.querySelectorAll('.bubble').forEach(b => b.classList.remove('dimmed'));
         } else {
-            // It was a tap (no drag) — also speak! (accessibility fallback)
-            const text = dragEl.dataset.text || dragEl.textContent;
+            // It was a tap (no drag) — speak via touch
+            touchHandled = true; // prevent click from double-firing
+            const text = dragEl.dataset.text || dragEl.textContent.trim();
             const rect = dragEl.getBoundingClientRect();
             popBubbleAtPosition(dragEl, rect.left + rect.width/2, rect.top + rect.height/2);
             speakText(text);
             if (app.currentContext) trackUsage(app.currentContext, text);
-            logFeedback('up', text);
             app.renderStats();
             
             const origText = text;
@@ -3095,6 +3315,20 @@ function updateSuggestedStrip() {
     const container = document.getElementById('suggestedCards');
     if (suggestedPhrases.length > 0) {
         strip.classList.add('visible');
+        // If we have strong contextual matches (score >= 10), show expanded wrapping view
+        const strongMatches = suggestedPhrases.filter(s => s.score >= 10);
+        const isExpanded = strongMatches.length >= 2;
+        if (isExpanded) {
+            container.classList.remove('scroll-horizontal');
+            container.style.flexWrap = 'wrap';
+            container.style.overflow = 'visible';
+            strip.querySelector('.suggested-label').textContent = '✨ CONTEXTUAL SUGGESTIONS — tap to speak';
+        } else {
+            container.classList.add('scroll-horizontal');
+            container.style.flexWrap = '';
+            container.style.overflow = '';
+            strip.querySelector('.suggested-label').textContent = '✨ SUGGESTIONS';
+        }
         container.innerHTML = suggestedPhrases.map((s, i) => {
             const escaped = s.card.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const theme = getThemeForSource(s.source);
@@ -3114,14 +3348,48 @@ function updateSuggestedStrip() {
 }
 
 function reorderCardsFromSuggestions() {
-    const suggestedTexts = new Set(suggestedPhrases.filter(s => !s.crossContext).map(s => s.card.text));
-    const suggested = app.filteredCards.filter(c => suggestedTexts.has(c.text));
-    const rest = app.filteredCards.filter(c => !suggestedTexts.has(c.text));
-    if (suggested.length > 0) {
-        app.filteredCards = [...suggested, ...rest];
-        app.index = 0;
-        app.updateCard();
-    }
+    // Inject strong suggestions directly into the bubble field
+    const bubbleField = document.getElementById('cardBubbleField');
+    if (!bubbleField) return;
+
+    // Get all contextual suggestions (virtual + cross-context + matched)
+    const contextualSuggestions = suggestedPhrases
+        .filter(s => s.score >= 8)  // Only strong matches (matrix match + topic match)
+        .slice(0, 12);  // Up to 12 contextual suggestions
+
+    if (contextualSuggestions.length === 0) return;
+
+    // Build contextual bubble HTML
+    const contextBubbles = contextualSuggestions.map(s => {
+        const escaped = s.card.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const theme = getThemeForSource(s.source);
+        return `<div class="bubble ${theme}" data-text="${escaped}">${s.card.text}</div>`;
+    }).join('');
+
+    // Get existing bubbles text to remove dupes
+    const suggestionTexts = new Set(contextualSuggestions.map(s => s.card.text));
+
+    // Remove any existing contextual section
+    const existingSection = bubbleField.querySelector('.contextual-section');
+    if (existingSection) existingSection.remove();
+
+    // Remove duplicates from main bubbles
+    bubbleField.querySelectorAll('.bubble').forEach(b => {
+        if (suggestionTexts.has(b.dataset.text || b.textContent.trim())) {
+            b.remove();
+        }
+    });
+
+    // Insert contextual section at top
+    const section = document.createElement('div');
+    section.className = 'contextual-section';
+    section.innerHTML = `<div class="contextual-label">💬 Relevant to this conversation</div>
+        <div class="bubble-field contextual-bubbles">${contextBubbles}</div>
+        <div class="contextual-divider"></div>`;
+    bubbleField.insertBefore(section, bubbleField.firstChild);
+
+    // Init drag on the new contextual bubble field
+    initBubbleDrag(section.querySelector('.contextual-bubbles'));
 }
 
 function updateTranscriptDisplay(text) {
@@ -3663,7 +3931,8 @@ const app = {
                     const escaped = card.text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     const useCount = getCardScore(this.currentContext, card.text);
                     const levelled = useCount >= 10 ? ' levelled' : '';
-                    return `<div class="bubble theme-card${levelled}" data-text="${escaped}">${card.text}</div>`;
+                    const customCls = card.custom ? ' custom-phrase' : '';
+                    return `<div class="bubble theme-card${levelled}${customCls}" data-text="${escaped}">${card.text}</div>`;
                 }).join('');
                 initBubbleDrag(bubbleField);
             }
@@ -3789,6 +4058,97 @@ const app = {
     },
     setModalCat(cat, el) { this.modalCategory = cat; document.querySelectorAll('.modal-cat-opt').forEach(b => b.classList.remove('selected')); el.classList.add('selected'); },
     closeAddPhrase() { document.getElementById('addPhraseModal').classList.remove('open'); },
+
+    // ===== EDIT / DELETE PHRASES =====
+    _editOriginalText: '',
+    _editIsCustom: false,
+    _editCustomIndex: -1,
+
+    openEditPhrase(text) {
+        if (!this.currentContext) return;
+        const d = loadData();
+        const customCards = d.customCards[this.currentContext] || [];
+        const customIdx = customCards.findIndex(c => c.text === text);
+        const isCustom = customIdx >= 0;
+        const builtInCard = CARD_DATA[this.currentContext]?.cards?.find(c => c.text === text);
+
+        this._editOriginalText = text;
+        this._editIsCustom = isCustom;
+        this._editCustomIndex = customIdx;
+
+        // Populate modal
+        document.getElementById('editPhraseInput').value = text;
+        if (isCustom) {
+            document.getElementById('editModalTitle').textContent = '✎ Edit Your Phrase';
+            document.getElementById('editModalDesc').textContent = 'Change the wording or delete this phrase.';
+        } else {
+            document.getElementById('editModalTitle').textContent = '✎ Personalise Phrase';
+            document.getElementById('editModalDesc').textContent = 'Edit to make it sound more like you, or hide it.';
+        }
+
+        // Category select
+        const cats = CARD_DATA[this.currentContext]?.categories || ['general'];
+        const currentCat = isCustom ? customCards[customIdx].cat : (builtInCard?.cat || cats[0]);
+        this._editCategory = currentCat;
+        document.getElementById('editCategorySelect').innerHTML = cats.map(c =>
+            `<button class="modal-cat-opt${c===currentCat?' selected':''}" onclick="app._editCategory='${c}';document.querySelectorAll('#editCategorySelect .modal-cat-opt').forEach(b=>b.classList.remove('selected'));this.classList.add('selected');">${c[0].toUpperCase()+c.slice(1)}</button>`
+        ).join('');
+
+        document.getElementById('editPhraseModal').classList.add('open');
+        setTimeout(() => document.getElementById('editPhraseInput').focus(), 350);
+    },
+
+    closeEditPhrase() { document.getElementById('editPhraseModal').classList.remove('open'); },
+
+    saveEditPhrase() {
+        const newText = document.getElementById('editPhraseInput').value.trim();
+        if (!newText) { showToast('Phrase cannot be empty'); return; }
+        const d = loadData();
+        const ctx = this.currentContext;
+
+        if (this._editIsCustom && this._editCustomIndex >= 0) {
+            // Edit existing custom card
+            d.customCards[ctx][this._editCustomIndex].text = newText;
+            d.customCards[ctx][this._editCustomIndex].cat = this._editCategory;
+        } else {
+            // Built-in card — hide original and add edited version as custom
+            if (!d.hiddenCards) d.hiddenCards = {};
+            if (!d.hiddenCards[ctx]) d.hiddenCards[ctx] = [];
+            if (!d.hiddenCards[ctx].includes(this._editOriginalText)) {
+                d.hiddenCards[ctx].push(this._editOriginalText);
+            }
+            if (!d.customCards[ctx]) d.customCards[ctx] = [];
+            d.customCards[ctx].push({text:newText, cat:this._editCategory, custom:true, editedFrom:this._editOriginalText});
+        }
+        saveData(d);
+        this.cards = getCardsForContext(ctx);
+        this.filterCat(this.currentCategory, document.querySelector(`.cat-btn[data-cat="${this.currentCategory}"]`));
+        this.closeEditPhrase();
+        showToast('✓ Phrase updated!', 'success');
+    },
+
+    deletePhrase() {
+        const d = loadData();
+        const ctx = this.currentContext;
+
+        if (this._editIsCustom && this._editCustomIndex >= 0) {
+            // Remove custom card
+            d.customCards[ctx].splice(this._editCustomIndex, 1);
+            showToast('🗑️ Phrase deleted', 'success');
+        } else {
+            // Hide built-in card
+            if (!d.hiddenCards) d.hiddenCards = {};
+            if (!d.hiddenCards[ctx]) d.hiddenCards[ctx] = [];
+            if (!d.hiddenCards[ctx].includes(this._editOriginalText)) {
+                d.hiddenCards[ctx].push(this._editOriginalText);
+            }
+            showToast('🗑️ Phrase hidden (can restore in Settings)', 'success');
+        }
+        saveData(d);
+        this.cards = getCardsForContext(ctx);
+        this.filterCat(this.currentCategory, document.querySelector(`.cat-btn[data-cat="${this.currentCategory}"]`));
+        this.closeEditPhrase();
+    },
     savePhrase() {
         const text = document.getElementById('phraseInput').value.trim();
         if (!text) { showToast('Please type a phrase first'); return; }

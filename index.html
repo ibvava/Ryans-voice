@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>Ryan's Voice</title>
-    <meta name="version" content="2.8.0">
+    <meta name="version" content="2.9.0">
     <meta name="author" content="IV">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -766,11 +766,12 @@
 // ============================================================
 const APP_VERSION = {
     name: "Ryan's Voice",
-    version: "2.8.0",
-    build: "2026.02.14b",
+    version: "2.9.0",
+    build: "2026.02.14c",
     copyright: "© 2026 IV. All rights reserved.",
     license: "Built with love for Ryan.",
     changelog: [
+        { ver:"2.9.0", date:"2026-02-14", notes:"Decline/refusal detection: new question types 'decline' and 'decline_delay' for when people say 'I'm tired', 'not now', 'maybe later'. Slot-fill blacklist prevents garbage phrases from verbs/adjectives (120+ blocked words). Slot-fill score reduced from 18→14. Topic-specific decline responses for gaming, outings, friends, activities." },
         { ver:"2.8.0", date:"2026-02-14", notes:"100% contextual coverage: filled 107 missing topic×questionType gaps across all 39 topics. Every topic now handles yesno, choice, preference, opinion, status, and review. Expanded from 188 to 303 response entries." },
         { ver:"2.7.0", date:"2026-02-14", notes:"Drag-to-speak interaction model. Contextual suggestion injection into bubble field. Expanded shopping & topic responses. Phrase edit/delete via long-press. Sentence builder. Version & copyright system." },
         { ver:"2.6.0", date:"2026-02-13", notes:"Glassy bubble UI with translucent aesthetics. Gamification: pop counter, sparkles, combos, milestones, levelled bubbles. Bubbles everywhere: suggestions, SOS, topic launcher, card browse." },
@@ -2046,6 +2047,12 @@ const QUESTION_PATTERNS = [
     {pattern:/\b(what.{0,15}(watch|see|look at|movie|show|film))\b/i, type:'watch_choice'},
     {pattern:/\b(what.{0,15}(play|game|playing))\b/i, type:'play_choice'},
     {pattern:/\b(what.{0,15}(read|book|reading))\b/i, type:'read_choice'},
+    // Decline / refusal — someone saying no to Ryan's request
+    {pattern:/\b(i'm tired|i am tired|i'm exhausted|i'm too tired)\b/i, type:'decline'},
+    {pattern:/\b(not (right )?now|maybe later|another time|not today|i can't right now)\b/i, type:'decline'},
+    {pattern:/\b(i('m| am) (too )?busy|i don't have time|i('ve| have) got to)\b/i, type:'decline'},
+    {pattern:/\b(we can't|we shouldn't|let's not|i'd rather not)\b/i, type:'decline'},
+    {pattern:/\b(after (i |my )|when i'm done|once i've|give me a (minute|moment|sec))\b/i, type:'decline_delay'},
     // General question types
     {pattern:/\b(what would you like|what do you want|what do you feel like|what would you prefer)\b/i, type:'choice'},
     {pattern:/\b(which one|which do you|pick one|choose)\b/i, type:'choice'},
@@ -2430,6 +2437,19 @@ const CONTEXTUAL_RESPONSES = {
 
     // ---- GAMING (fill gaps) ----
     'gaming:status':      ["I'm in the middle of a level.","I'm almost done.","I just started — give me a few minutes.","I've been playing for a while.","Save point reached — I can stop now."],
+    'gaming:decline':     ["Okay, can I play by myself then?","What about a quick game?","Maybe we can play something easier?","Can I play on my own?","What if I teach you a simple one?","That's fine — I'll play solo."],
+    'gaming:decline_delay':["I'll wait — just let me know.","Can we play after dinner?","I'll set it up while I wait.","No rush — I'll practise on my own."],
+
+    // ---- OUTINGS (decline) ----
+    'outings:decline':    ["Okay, maybe another day.","What if we go somewhere closer?","Can we go tomorrow instead?","I understand — I'll find something to do at home.","What about a short walk instead?"],
+    'outings:decline_delay':["That's fine — tell me when.","I'll get ready while I wait.","Can we go this afternoon instead?"],
+
+    // ---- FRIENDS (decline) ----
+    'friends:decline':    ["Okay, maybe next time.","Can I message them instead?","What about a video call?","I understand.","Can they come here so you don't have to drive?"],
+
+    // ---- ACTIVITY (general decline) ----
+    'activity:decline':   ["Okay, what can we do instead?","Is there something easier we could do together?","Can I do it on my own?","What about something quieter?","I'll find something else to do.","That's okay — any other ideas?"],
+    'activity:decline_delay':["No worries, I'll wait.","Can you tell me when you're free?","I'll entertain myself until then.","How about in 30 minutes?"],
 
     // ---- HEALTH (fill gaps) ----
     'health:choice':      ["I'd like to rest.","Can I have some medicine?","A cold pack would help.","I need to lie down.","Can we see the doctor?"],
@@ -2712,6 +2732,8 @@ const GENERIC_RESPONSES = {
     play_choice:["Minecraft.","Something multiplayer.","A puzzle game.","Something new.","Whatever you want.","Can I pick?","Something we can play together."],
     read_choice:["Something interesting.","Fiction.","A graphic novel.","The one I'm reading now.","Something new.","Can you recommend one?"],
     need:["Help, please.","A minute to think.","Some space.","Something to eat.","Someone to talk to.","More time.","A break.","Nothing right now, thanks."],
+    decline:["Okay, that's fine.","Can we do it later then?","What about tomorrow?","I understand.","When would be a good time?","That's okay — I can do something else.","Maybe after you've rested?","Is there something we can do together that's easier?","No worries.","I'll find something else to do.","What if we do something quiet instead?","Can someone else do it with me?"],
+    decline_delay:["Okay, I'll wait.","How long do you think?","That's fine — I'll do something else first.","Let me know when you're ready.","No rush.","I'll be patient.","Can I set a timer?","I'll play by myself until then."],
 };
 
 function initSpeechRecognition() {
@@ -3050,9 +3072,23 @@ function analyseAndSuggest(text, isFinal) {
     }
 
     // Priority 0: SLOT-FILLED responses (most contextual — uses the actual subject word)
-    if (subject && questionType && SLOT_TEMPLATES[questionType]) {
+    // Only slot-fill with nouns that make sense as objects (not verbs, adjectives, or generic words)
+    const SLOT_BLACKLIST = new Set([
+        // Verbs/adjectives commonly misextracted as subjects
+        'tired','add','chat','want','need','like','have','make','take','get','come','give','let',
+        'play','try','help','find','think','know','feel','say','tell','go','put','see','look',
+        'buy','eat','drink','watch','read','write','draw','run','walk','sit','stand','wait','stop',
+        'start','keep','show','open','close','turn','ask','done','finish','finished','ready',
+        'good','bad','nice','cool','great','fine','okay','happy','sad','angry','big','small',
+        'hot','cold','warm','new','old','fast','slow','hard','easy','long','short','much','many',
+        // Function words that leak through
+        'more','just','also','still','even','only','really','very','too','some','any','all',
+        'about','after','before','with','from','into','over','under','again','here','there','now',
+        'today','tomorrow','yesterday','later','soon','away','back','home','please','thanks',
+    ]);
+    if (subject && questionType && SLOT_TEMPLATES[questionType] && !SLOT_BLACKLIST.has(subject.toLowerCase()) && subject.length > 2) {
         const slotFilled = fillSlots(SLOT_TEMPLATES[questionType], subject);
-        addResponses(slotFilled.slice(0,4), 18, '✨ contextual');
+        addResponses(slotFilled.slice(0,4), 14, '✨ contextual');
     }
 
     // Priority 1: EXACT matrix match (topic + question type)

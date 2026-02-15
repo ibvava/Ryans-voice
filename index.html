@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>Ryan's Voice</title>
-    <meta name="version" content="2.9.0">
+    <meta name="version" content="2.10.0">
     <meta name="author" content="IV">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -766,11 +766,12 @@
 // ============================================================
 const APP_VERSION = {
     name: "Ryan's Voice",
-    version: "2.9.0",
-    build: "2026.02.14c",
+    version: "2.10.0",
+    build: "2026.02.15",
     copyright: "© 2026 IV. All rights reserved.",
     license: "Built with love for Ryan.",
     changelog: [
+        { ver:"2.10.0", date:"2026-02-15", notes:"Comprehensive decline system: 27 decline entries across 4 directions (parent declines Ryan, Ryan declines others, peer decline, authority decline). 15 detection patterns for decline/delay/peer/authority. Covers shopping, food, technology, movies, sleep, money, chores, homework, hygiene, social, school, outings, health, appearance, routine." },
         { ver:"2.9.0", date:"2026-02-14", notes:"Decline/refusal detection: new question types 'decline' and 'decline_delay' for when people say 'I'm tired', 'not now', 'maybe later'. Slot-fill blacklist prevents garbage phrases from verbs/adjectives (120+ blocked words). Slot-fill score reduced from 18→14. Topic-specific decline responses for gaming, outings, friends, activities." },
         { ver:"2.8.0", date:"2026-02-14", notes:"100% contextual coverage: filled 107 missing topic×questionType gaps across all 39 topics. Every topic now handles yesno, choice, preference, opinion, status, and review. Expanded from 188 to 303 response entries." },
         { ver:"2.7.0", date:"2026-02-14", notes:"Drag-to-speak interaction model. Contextual suggestion injection into bubble field. Expanded shopping & topic responses. Phrase edit/delete via long-press. Sentence builder. Version & copyright system." },
@@ -2052,7 +2053,19 @@ const QUESTION_PATTERNS = [
     {pattern:/\b(not (right )?now|maybe later|another time|not today|i can't right now)\b/i, type:'decline'},
     {pattern:/\b(i('m| am) (too )?busy|i don't have time|i('ve| have) got to)\b/i, type:'decline'},
     {pattern:/\b(we can't|we shouldn't|let's not|i'd rather not)\b/i, type:'decline'},
-    {pattern:/\b(after (i |my )|when i'm done|once i've|give me a (minute|moment|sec))\b/i, type:'decline_delay'},
+    {pattern:/\b(no you can't|you can't do that|not allowed|you've had enough)\b/i, type:'decline'},
+    {pattern:/\b(too (late|early|expensive|far|cold|hot|dangerous))\b/i, type:'decline'},
+    {pattern:/\b(we('re| are) (having|doing) something else)\b/i, type:'decline'},
+    {pattern:/\b(you (need|have) to .{0,15} first)\b/i, type:'decline_delay'},
+    {pattern:/\b(after (i |my |you |your )|when i'm done|once i've|give me a (minute|moment|sec))\b/i, type:'decline_delay'},
+    {pattern:/\b(finish .{0,10} first|do .{0,10} first|homework first|chores first)\b/i, type:'decline_delay'},
+    // Peer decline
+    {pattern:/\b(i don't want to (play|do|go|be)|i don't feel like)\b/i, type:'peer_decline'},
+    {pattern:/\b(i('m| am) not (interested|coming|going|playing))\b/i, type:'peer_decline'},
+    {pattern:/\b(i already have (plans|a partner|someone))\b/i, type:'peer_decline'},
+    // Authority decline
+    {pattern:/\b(you (can't|cannot|must not|mustn't) .{0,20} (right now|today|yet))\b/i, type:'authority_decline'},
+    {pattern:/\b(the (rules|policy) (say|is|are))\b/i, type:'authority_decline'},
     // General question types
     {pattern:/\b(what would you like|what do you want|what do you feel like|what would you prefer)\b/i, type:'choice'},
     {pattern:/\b(which one|which do you|pick one|choose)\b/i, type:'choice'},
@@ -2451,6 +2464,83 @@ const CONTEXTUAL_RESPONSES = {
     'activity:decline':   ["Okay, what can we do instead?","Is there something easier we could do together?","Can I do it on my own?","What about something quieter?","I'll find something else to do.","That's okay — any other ideas?"],
     'activity:decline_delay':["No worries, I'll wait.","Can you tell me when you're free?","I'll entertain myself until then.","How about in 30 minutes?"],
 
+    // ============================================================
+    // DECLINE RESPONSES — Parent/carer declines Ryan's request
+    // ============================================================
+
+    // Shopping decline (too expensive, not today)
+    'shopping:decline':   ["Okay, can I save up for it?","What if I use my own money?","Can we come back another time?","I understand — maybe for my birthday?","Can we at least look?","Is there a cheaper version?","I'll add it to my wish list."],
+    'shopping:decline_delay':["Okay, can we come back on the weekend?","I'll wait for the sale.","Can we look online later?","Let me think about whether I really need it."],
+
+    // Food decline (we're having something else)
+    'food:decline':       ["Okay, what are we having instead?","Can we have it tomorrow?","I understand.","Can I help choose what we're having?","What if I help cook?","Fair enough — I'll eat what everyone else is having.","Can I at least have it as a side?"],
+    'food:decline_delay': ["Can we have it for lunch tomorrow?","I'll look forward to it next time.","Okay — can I help plan the menu for the week?"],
+
+    // Technology decline (screen time, do homework first)
+    'technology:decline':   ["How much longer until I can?","Can I have just 10 minutes?","What should I do instead?","Okay, I'll do homework first.","Can I earn more screen time?","Fair enough.","What if I read instead?","When can I use it next?"],
+    'technology:decline_delay':["I'll set a timer for homework first.","Okay, I'll do it after I've finished.","Can I use it after dinner?","How long do I need to wait?"],
+
+    // Movies/TV decline (too late, not now)
+    'movies_tv:decline':  ["Can we watch it tomorrow?","What about a short episode instead?","Okay, I'll read instead.","Can we add it to our list?","What if it's only 20 minutes?","I understand."],
+    'movies_tv:decline_delay':["Can we watch it this weekend?","I'll pause it and finish later.","Okay, remind me tomorrow."],
+
+    // Sleep/bedtime decline (Ryan wants to stay up)
+    'sleep:decline':      ["Five more minutes, please?","But I'm not tired yet.","Can I read in bed?","Okay, goodnight.","Can I listen to music while falling asleep?","What if I go to bed but stay awake quietly?","I promise I'll go straight to sleep."],
+    'sleep:decline_delay':["Can I stay up until this is finished?","Just let me save my game first.","One more chapter?","Can I have 15 more minutes?"],
+
+    // Money decline (already spent allowance)
+    'money:decline':      ["When do I get my next allowance?","Can I earn extra by doing chores?","I'll save up then.","How much more do I need?","I understand — I'll be more careful with my money.","Can I borrow and pay it back?","Fair enough."],
+
+    // ============================================================
+    // DECLINE RESPONSES — Ryan declining something asked of him
+    // ============================================================
+
+    // Ryan declines chores
+    'chores:decline':     ["Can I do it after I finish this?","I need a break first.","Can someone help me?","I'll do it in 10 minutes.","Do I have to do it right now?","I'm in the middle of something.","Can I do a different chore instead?","I promise I'll do it — just not this second."],
+
+    // Ryan declines homework
+    'homework:decline':   ["I need a break first — my brain is tired.","Can I do it after dinner?","I'm stuck and frustrated.","Can you help me get started?","I've been working hard — can I have 10 minutes?","I'll start in a moment.","I'd focus better after a snack.","The question doesn't make sense to me."],
+
+    // Ryan declines hygiene
+    'hygiene:decline':    ["Five more minutes, please.","I'll do it after this.","Can I have a shower instead of a bath?","I don't need to wash my hair today.","I'm coming — just give me a moment.","Do I have to do it right now?","I'll be quick — let me finish this first."],
+
+    // Ryan declines social invitation
+    'social:decline':     ["I'm not feeling very social right now.","Maybe another time — I need quiet today.","Can we do something just the two of us instead?","I'd prefer to stay home today.","I'm a bit overwhelmed.","Thank you for asking, but not today.","Can we do something online instead?","I need to recharge."],
+
+    // Ryan declines school activity
+    'school:decline':     ["I'm not ready to present yet.","Can I do it a different way?","I need more time to prepare.","Can I go second instead of first?","I'd prefer to submit it in writing.","I'm feeling anxious about that.","Can I practise first?","Is there an alternative option?"],
+
+    // Ryan declines outing (party, gathering — sensory concern)
+    'outings:decline':    ["I don't think I can handle that many people.","It might be too loud for me.","Can I come for just a short time?","I'd rather stay home today.","Will there be a quiet space I can go to?","Can I bring my headphones?","I'm not feeling up to it.","What if I come but leave early if I need to?"],
+
+    // Ryan declines medicine
+    'health:decline':     ["It tastes really bad.","Do I have to take it?","Can I have it with juice?","I'll take it in a minute.","Is there a different kind?","I know I need to — just give me a moment.","Can I have it after food?","I'm trying to be brave about it."],
+
+    // Ryan declines wearing something (sensory)
+    'appearance:decline': ["It's uncomfortable — the fabric is scratchy.","The tag is really bothering me.","It's too tight.","I don't like how it feels.","Can I wear something else?","This one makes me feel weird.","The seams are irritating.","I'd prefer my usual clothes.","It's a sensory thing — I can't help it."],
+
+    // Ryan declines routine step
+    'routine:decline':    ["Can I do it in a different order today?","I'm not ready yet — five more minutes.","I need to finish something first.","Can we skip that step today?","I'll do it — just not right now.","I'm having a slow morning.","Can you help me get started?"],
+
+    // ============================================================
+    // DECLINE RESPONSES — Peer/friend declines Ryan
+    // ============================================================
+
+    // Friend can't hang out
+    'friends:peer_decline':["That's okay — maybe another time.","I hope you have a good day anyway.","Let me know when you're free.","I'll miss hanging out but I understand.","We can always play online instead.","No worries — I'll find something else to do."],
+
+    // Friend rejects game choice
+    'gaming:peer_decline':["What would you like to play instead?","That's fair — you pick.","We could take turns choosing.","What about something we both like?","Okay, I'm open to suggestions.","Let's find something new together."],
+
+    // Classmate rejects partnership
+    'school:peer_decline':["That's okay.","Is there someone else I can work with?","I can work on my own.","Can the teacher help me find a partner?","I understand — no hard feelings.","I'll do my best by myself."],
+
+    // ============================================================
+    // DECLINE RESPONSES — Authority figure says no
+    // ============================================================
+    'school:authority_decline':["I understand.","Can I do it later instead?","Okay, I'll wait.","Is there a reason I can't?","Thank you for explaining.","I respect that decision.","Can I ask when I'll be able to?"],
+    'health:authority_decline':["I understand it's important.","I'll try to be brave.","Can you explain why I need to?","Okay, I'll do it.","Will it hurt?","Can we do it quickly?","I trust you."],
+
     // ---- HEALTH (fill gaps) ----
     'health:choice':      ["I'd like to rest.","Can I have some medicine?","A cold pack would help.","I need to lie down.","Can we see the doctor?"],
     'health:preference':  ["I prefer rest to medicine.","I'd rather wait and see if it passes.","I like having a heat pack.","I prefer the liquid medicine."],
@@ -2734,6 +2824,8 @@ const GENERIC_RESPONSES = {
     need:["Help, please.","A minute to think.","Some space.","Something to eat.","Someone to talk to.","More time.","A break.","Nothing right now, thanks."],
     decline:["Okay, that's fine.","Can we do it later then?","What about tomorrow?","I understand.","When would be a good time?","That's okay — I can do something else.","Maybe after you've rested?","Is there something we can do together that's easier?","No worries.","I'll find something else to do.","What if we do something quiet instead?","Can someone else do it with me?"],
     decline_delay:["Okay, I'll wait.","How long do you think?","That's fine — I'll do something else first.","Let me know when you're ready.","No rush.","I'll be patient.","Can I set a timer?","I'll play by myself until then."],
+    peer_decline:["That's okay — maybe another time.","No worries.","What would you prefer to do?","I understand.","We can do something else.","Let me know if you change your mind.","Fair enough.","That's cool — I'll find something else."],
+    authority_decline:["I understand.","Okay, I'll wait.","Can you explain why?","Thank you for telling me.","I respect that.","When will I be able to?","That makes sense.","I'll follow the rules."],
 };
 
 function initSpeechRecognition() {
